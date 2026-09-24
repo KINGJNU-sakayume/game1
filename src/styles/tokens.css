@@ -79,6 +79,22 @@
   --viewer-bg: rgba(0, 0, 0, 0.92);
   --banner-bg: rgba(255, 255, 255, 0.86);
   --banner-shadow: rgba(0, 0, 0, 0.18);
+
+  /* 대면 장면 · 통화 (라이트/다크 공통: 항상 어두운 무대) */
+  --stage-bg: #000000;
+  --stage-text: #ffffff;
+  --stage-text-muted: rgba(255, 255, 255, 0.7);
+  --dialogue-bg: rgba(12, 14, 18, 0.78);
+  --dialogue-border: rgba(255, 255, 255, 0.12);
+  --choice-bg: rgba(255, 255, 255, 0.92);
+  --choice-text: #15171a;
+  --call-bg: linear-gradient(180deg, #2b3445 0%, #141821 100%);
+  --call-accept: #34c759;
+  --call-decline: #ff3b30;
+  --call-control: rgba(255, 255, 255, 0.18);
+  --call-pip: linear-gradient(135deg, #3a4050, #1d2029);
+  --stage-shadow: rgba(0, 0, 0, 0.6);
+  --stage-placeholder: linear-gradient(160deg, #2a2f3a, #111318);
   --app-icon-fg: #ffffff;
 }
 

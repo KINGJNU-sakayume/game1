@@ -12,10 +12,10 @@ import {
   isRoomId,
   isSenderId,
 } from '../story/cast'
-import type { HeroineId, RoomId, SenderId } from '../story/cast'
+import type { HeroineId, PersonId, RoomId, SenderId } from '../story/cast'
 import { loadSettings } from '../state/storage'
-import { hasUnreadMine, markRead, pushMessage, store, syncMessageIds } from './store'
-import type { ChoiceOption, Stats } from './store'
+import { hasUnreadMine, markRead, pushMessage, setStage, store, syncMessageIds } from './store'
+import type { CallRecord, ChoiceOption, PendingChoice, Stats } from './store'
 import { loadResume, rewindTo, saveDay, saveResume } from './save'
 import type { Snapshot } from './save'
 
@@ -51,7 +51,13 @@ let currentRoom: RoomId = 'dangol'
 /** 괄호 없이 쓴 선택지는 ink가 선택한 글을 한 줄로 다시 출력한다. 그 줄은 건너뛴다 */
 let lastChosen: string | null = null
 let pendingResolve: ((option: ChoiceOption) => void) | null = null
+let pendingKind: PendingChoice['kind'] = 'reply'
 let cleanupChoice: (() => void) | null = null
+/** 대면·통화 대사에서 탭을 기다리는 중 */
+let advanceResolve: (() => void) | null = null
+let nextLineId = 1
+let nextCallId = 1
+let fxKey = 0
 
 function sleep(seconds: number, gen: number, scaled = true): Promise<void> {
   const factor = scaled ? SPEED[loadSettings().textSpeed] : 1
@@ -87,6 +93,8 @@ function readDelay(from: SenderId): number {
 function snapshot(): Snapshot {
   const s = store.get()
   return {
+    stage: s.stage && !s.stage.ending ? s.stage : null,
+    calls: s.calls,
     version: 1,
     day: s.clock.day,
     ink: story!.state.ToJson(),
@@ -96,6 +104,118 @@ function snapshot(): Snapshot {
     room: currentRoom,
     savedAt: Date.now(),
   }
+}
+
+function isPerson(id: string): id is PersonId {
+  return isSenderId(id) && id !== 'me' && id !== 'system'
+}
+
+/** 대면·통화 중 탭을 기다린다 */
+function waitAdvance(gen: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    advanceResolve = () => (gen === generation ? resolve() : reject(new Cancelled()))
+  })
+}
+
+async function startScene(image: string | null, gen: number) {
+  const stage = store.get().stage
+  if (stage?.kind === 'scene' && !stage.ending) {
+    setStage({ image, black: false, fx: null })
+    return
+  }
+  // 폰 화면이 꺼지듯 어두워진 뒤 컷이 나타난다 (연출 시간은 텍스트 속도와 무관)
+  store.set({
+    banner: null,
+    stage: { kind: 'scene', image, black: false, fx: null, line: null, call: null, ending: false },
+  })
+  await sleep(1.0, gen, false)
+}
+
+async function endStage(gen: number) {
+  if (!store.get().stage) return
+  setStage({ ending: true, line: null })
+  await sleep(0.6, gen, false)
+  store.set({ stage: null })
+}
+
+function connectCall() {
+  const call = store.get().stage?.call
+  if (call) setStage({ call: { ...call, state: 'connected', startedAt: Date.now() } })
+}
+
+function recordCall(kind: CallRecord['kind']) {
+  const s = store.get()
+  const call = s.stage?.call
+  if (!call) return
+  const seconds = call.startedAt ? Math.round((Date.now() - call.startedAt) / 1000) : 0
+  const record: CallRecord = { id: nextCallId++, who: call.who, video: call.video, kind, day: s.clock.day, time: s.clock.time, seconds }
+  store.set({ calls: [...s.calls, record] })
+}
+
+async function startCall(who: PersonId, video: boolean, outgoing: boolean, gen: number) {
+  store.set({
+    banner: null,
+    stage: {
+      kind: 'call',
+      image: null,
+      black: false,
+      fx: null,
+      line: null,
+      call: { who, video, outgoing, state: outgoing ? 'connecting' : 'ringing', startedAt: null },
+      ending: false,
+    },
+  })
+  if (outgoing) {
+    await sleep(1.8, gen, false)
+    connectCall()
+  }
+}
+
+/** 대면·통화 무대의 연출 태그 */
+async function handleStageTags(tags: Tags, gen: number) {
+  if (tags.scene !== undefined) {
+    if (tags.scene === 'end') await endStage(gen)
+    else await startScene(tags.scene || null, gen)
+  }
+  if (tags.call !== undefined) {
+    if (tags.call === 'end') {
+      const call = store.get().stage?.call
+      if (call) {
+        recordCall(call.outgoing ? 'outgoing' : 'incoming')
+        await endStage(gen)
+      }
+    } else if (isPerson(tags.call)) {
+      await startCall(tags.call, tags.video !== undefined, tags.outgoing !== undefined, gen)
+    } else warn(`알 수 없는 call: ${tags.call}`)
+  }
+  if (!store.get().stage) return
+  if (tags.cut !== undefined) setStage({ image: tags.cut || null, black: false, fx: null })
+  if (tags.fx !== undefined) {
+    if (tags.fx === 'zoom' || tags.fx === 'shake') setStage({ fx: { type: tags.fx, key: ++fxKey } })
+    else warn(`알 수 없는 fx: ${tags.fx}`)
+  }
+  if (tags.fade !== undefined) {
+    setStage({ black: true })
+    await sleep(1.2, gen, false)
+  }
+}
+
+/** 대면·통화 중 대사 한 줄: 탭하면 넘어간다 */
+async function stageLine(text: string, tags: Tags, gen: number) {
+  const stage = store.get().stage!
+  if (stage.call?.state === 'ringing') {
+    warn('받기/거절 선택지 없이 통화 대사가 나와 자동으로 연결합니다')
+    connectCall()
+  }
+  let speaker: SenderId | null = stage.kind === 'call' ? stage.call!.who : null
+  if (tags.from !== undefined) {
+    if (isSenderId(tags.from)) speaker = tags.from === 'system' ? null : tags.from
+    else warn(`알 수 없는 from: ${tags.from}`)
+  }
+  setStage({ line: { id: nextLineId++, speaker, text } })
+  // 바로 뒤에 선택지가 오면 탭을 기다리지 않고 선택지를 함께 보여준다
+  if (!story!.canContinue && story!.currentChoices.length > 0) return
+  await waitAdvance(gen)
 }
 
 function resolveSender(tag: string | undefined, room: RoomId): SenderId {
@@ -129,6 +249,7 @@ async function handleLine(text: string, tags: Tags, gen: number): Promise<boolea
     else warn(`알 수 없는 room: ${tags.room}`)
   }
   if (tags.wait !== undefined) await sleep(Number.parseFloat(tags.wait) || 0, gen)
+  await handleStageTags(tags, gen)
 
   if (!text) return newDay
   if (lastChosen !== null && text === lastChosen && tags.from === undefined) {
@@ -136,6 +257,12 @@ async function handleLine(text: string, tags: Tags, gen: number): Promise<boolea
     return newDay
   }
   lastChosen = null
+
+  const stage = store.get().stage
+  if (stage && !stage.ending) {
+    await stageLine(text, tags, gen)
+    return newDay
+  }
 
   const room = currentRoom
   const from = resolveSender(tags.from, room)
@@ -179,15 +306,26 @@ function askChoice(): Promise<ChoiceOption> {
       draft: t.draft || null,
       act: t.act !== undefined,
       openRoom,
+      answer: t.answer !== undefined,
+      decline: t.decline !== undefined,
     }
   })
-  const kind = options.every((o) => o.openRoom) ? 'open' : 'reply'
+  const stage = store.get().stage
+  const kind: PendingChoice['kind'] =
+    stage?.call?.state === 'ringing' && options.some((o) => o.answer || o.decline)
+      ? 'call'
+      : stage
+        ? 'stage'
+        : options.every((o) => o.openRoom)
+          ? 'open'
+          : 'reply'
+  pendingKind = kind
   // 선택지 앞은 다시 불러와도 똑같이 이어지는 지점이므로 여기서 이어하기 저장
   saveResume(snapshot(), store.get().messages)
 
   return new Promise((resolve) => {
     pendingResolve = resolve
-    store.set({ choice: { kind, room: kind === 'open' ? null : currentRoom, options } })
+    store.set({ choice: { kind, room: kind === 'reply' ? currentRoom : null, options } })
     if (kind === 'open') {
       // 먼저 연 방이 곧 선택이다
       const check = () => {
@@ -237,6 +375,20 @@ async function sendChoice(option: ChoiceOption, room: RoomId, gen: number) {
   pushMessage({ room, from: 'me', text })
 }
 
+/** 대면·통화 중 고른 선택지 처리 */
+async function stageChoice(option: ChoiceOption, gen: number) {
+  if (option.answer) {
+    connectCall()
+  } else if (option.decline) {
+    recordCall('declined')
+    await endStage(gen)
+  } else if (option.say && !option.act) {
+    // 버튼 글과 다른 말을 할 때만 주인공 대사로 보여준다
+    setStage({ line: { id: nextLineId++, speaker: 'me', text: option.say } })
+    await waitAdvance(gen)
+  }
+}
+
 async function run(gen: number) {
   try {
     while (gen === generation && story) {
@@ -249,7 +401,8 @@ async function run(gen: number) {
         const room = currentRoom
         const option = await askChoice()
         if (gen !== generation) return
-        await sendChoice(option, room, gen)
+        if (pendingKind === 'stage' || pendingKind === 'call') await stageChoice(option, gen)
+        else await sendChoice(option, room, gen)
         story.ChooseChoiceIndex(option.index)
         lastChosen = option.label
         syncStats()
@@ -273,7 +426,14 @@ export const director = {
         story.state.LoadJson(saved.snapshot.ink)
         currentRoom = saved.snapshot.room
         syncMessageIds(saved.messages)
-        store.set({ messages: saved.messages, clock: saved.snapshot.clock, unread: saved.snapshot.unread })
+        store.set({
+          messages: saved.messages,
+          clock: saved.snapshot.clock,
+          unread: saved.snapshot.unread,
+          stage: saved.snapshot.stage ?? null,
+          calls: saved.snapshot.calls ?? [],
+        })
+        nextCallId = (saved.snapshot.calls ?? []).reduce((max, c) => Math.max(max, c.id), 0) + 1
       } catch (error) {
         // 대본이 크게 바뀌어 저장본이 맞지 않으면 처음부터
         console.warn('저장본을 불러오지 못해 처음부터 시작합니다', error)
@@ -302,6 +462,13 @@ export const director = {
     }
   },
 
+  /** 대면·통화 대사를 탭했을 때 */
+  advance() {
+    const resolve = advanceResolve
+    advanceResolve = null
+    resolve?.()
+  },
+
   /** 추천 답장을 눌렀을 때 */
   choose(index: number) {
     const choice = store.get().choice
@@ -322,6 +489,7 @@ export const director = {
     currentRoom = 'dangol'
     lastChosen = null
     pendingResolve = null
+    advanceResolve = null
     cleanupChoice?.()
     cleanupChoice = null
     store.reset()

@@ -1,7 +1,7 @@
 // 게임 진행 상태 저장소. React 밖(연출 엔진)에서도 쓰기 때문에 외부 저장소 + useSyncExternalStore로 만든다.
 import { useSyncExternalStore } from 'react'
 import { ROOMS } from '../story/cast'
-import type { HeroineId, RoomId, SenderId } from '../story/cast'
+import type { HeroineId, PersonId, RoomId, SenderId } from '../story/cast'
 
 export interface ChatMessage {
   id: number
@@ -30,13 +30,57 @@ export interface ChoiceOption {
   act: boolean
   /** 이 방을 먼저 열면 선택되는 선택지 */
   openRoom: RoomId | null
+  /** 전화 수신 화면의 받기 / 거절 */
+  answer: boolean
+  decline: boolean
 }
 
 export interface PendingChoice {
-  /** reply: 방 안의 추천 답장 / open: 어느 방을 먼저 여느냐 */
-  kind: 'reply' | 'open'
+  /** reply: 방 안의 추천 답장 / open: 어느 방을 먼저 여느냐 / stage: 대면·통화 중 선택 / call: 받기·거절 */
+  kind: 'reply' | 'open' | 'stage' | 'call'
   room: RoomId | null
   options: ChoiceOption[]
+}
+
+/** 대면 장면·통화 화면에 한 줄씩 나오는 대사 */
+export interface StageLine {
+  id: number
+  /** null이면 서술(주인공의 1인칭 서술·독백) */
+  speaker: SenderId | null
+  text: string
+}
+
+export interface CallInfo {
+  who: PersonId
+  video: boolean
+  outgoing: boolean
+  state: 'ringing' | 'connecting' | 'connected'
+  /** 연결된 시각 (Date.now) */
+  startedAt: number | null
+}
+
+/** 폰 화면 위를 덮는 무대: 대면 장면 또는 통화 */
+export interface Stage {
+  kind: 'scene' | 'call'
+  /** 풀스크린 컷 이미지 (cg/ 또는 bg_로 시작하면 backgrounds/) */
+  image: string | null
+  /** 암전 */
+  black: boolean
+  fx: { type: 'zoom' | 'shake'; key: number } | null
+  line: StageLine | null
+  call: CallInfo | null
+  /** 끝나는 전환 중 */
+  ending: boolean
+}
+
+export interface CallRecord {
+  id: number
+  who: PersonId
+  video: boolean
+  kind: 'incoming' | 'outgoing' | 'declined'
+  day: number
+  time: string
+  seconds: number
 }
 
 export interface Banner {
@@ -68,6 +112,8 @@ export interface GameState {
   banner: Banner | null
   /** 알림을 눌러 열어야 할 방 */
   requestedRoom: RoomId | null
+  stage: Stage | null
+  calls: CallRecord[]
 }
 
 export const INITIAL_STATE: GameState = {
@@ -81,6 +127,8 @@ export const INITIAL_STATE: GameState = {
   viewingRoom: null,
   banner: null,
   requestedRoom: null,
+  stage: null,
+  calls: [],
 }
 
 type Listener = () => void
@@ -132,6 +180,10 @@ export function pushMessage(message: Omit<ChatMessage, 'id' | 'day' | 'time'>) {
           : { id: nextBannerId++, room: message.room, from: message.from, text: previewText(full) },
     }
   })
+}
+
+export function setStage(update: Partial<Stage> | null) {
+  store.set((s) => ({ stage: update === null ? null : s.stage ? { ...s.stage, ...update } : null }))
 }
 
 /** 이 방에서 주인공이 보낸 안 읽힌 메시지가 있는지 */

@@ -5,8 +5,9 @@ import LockScreen from './phone/LockScreen'
 import HomeScreen from './phone/HomeScreen'
 import AppShell from './phone/AppShell'
 import NotificationBanner from './phone/NotificationBanner'
+import Stage from './phone/Stage'
 import { director } from './engine/director'
-import { store } from './engine/store'
+import { store, useGame } from './engine/store'
 import type { RoomId } from './story/cast'
 import { getApp } from './apps/registry'
 import type { AppId } from './apps/registry'
@@ -27,8 +28,10 @@ export default function App() {
   const [openApp, setOpenApp] = useState<OpenApp | null>(null)
   const phoneRef = useRef<HTMLDivElement>(null)
 
+  const onStage = useGame((s) => s.stage !== null)
+
   // 화면 바깥 가장자리 색을 현재 화면에 맞춘다 (global.css의 html[data-screen])
-  const edge = !profile ? 'setup' : openApp ? 'app' : screen
+  const edge = !profile ? 'setup' : onStage ? 'stage' : openApp ? 'app' : screen
   useEffect(() => {
     document.documentElement.dataset.screen = edge
   }, [edge])
@@ -118,5 +121,10 @@ export default function App() {
     )
   }
 
-  return <PhoneFrame ref={phoneRef}>{content}</PhoneFrame>
+  return (
+    <PhoneFrame ref={phoneRef}>
+      {content}
+      {profile && screen !== 'setup' && <Stage />}
+    </PhoneFrame>
+  )
 }
