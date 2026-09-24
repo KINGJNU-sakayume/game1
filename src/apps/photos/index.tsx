@@ -26,7 +26,7 @@ export default function PhotosApp() {
               .filter((p) => p.day === day)
               .map((p) => (
                 <button key={p.name} type="button" className="photos__item" onClick={() => setViewing(p)} aria-label={p.name}>
-                  <StoryImage folder="cg" name={p.name} alt="" />
+                  <StoryImage name={p.name} alt="" />
                 </button>
               ))}
           </div>

@@ -31,7 +31,18 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,webp,woff2}'],
+        // 대본 이미지는 많아지므로 처음에 전부 받지 않고, 한 번 본 것만 저장한다
+        globIgnores: ['assets/{cg,characters,backgrounds,ui}/**'],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /\/assets\/(cg|characters|backgrounds|ui)\//.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'story-images',
+              expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 60 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
           {
             urlPattern: ({ url }) => url.origin === 'https://cdn.jsdelivr.net',
             handler: 'CacheFirst',
