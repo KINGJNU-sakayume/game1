@@ -288,6 +288,9 @@ img {
 }
 
 .lock__notifications {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
   padding: 32px 16px 0;
 }
@@ -296,6 +299,10 @@ img {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
+  min-height: var(--touch-min);
+  text-align: left;
+  animation: banner-in 260ms var(--ease-app) both;
   padding: 12px 14px;
   border-radius: 18px;
   background: var(--color-glass-strong);
@@ -314,6 +321,11 @@ img {
   border-radius: 9px;
   background: var(--app-messenger);
   color: var(--app-icon-fg);
+}
+
+.notification__body {
+  display: flex;
+  flex-direction: column;
 }
 
 .notification__title {
@@ -530,10 +542,24 @@ img {
   font-size: 17px;
 }
 
+.app-header__titles {
+  min-width: 0;
+  text-align: center;
+}
+
 .app-header__title {
   margin: 0;
+  overflow: hidden;
   font-size: 17px;
   font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.app-header__subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
 }
 
 .app-body {
@@ -722,4 +748,59 @@ img {
 .modal__confirm {
   color: var(--color-danger);
   font-weight: 600;
+}
+
+/* ───────── 알림 배너 ───────── */
+
+.banner {
+  position: absolute;
+  top: calc(var(--safe-top) + 8px);
+  left: 8px;
+  right: 8px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 10px 14px;
+  border-radius: 20px;
+  background: var(--banner-bg);
+  color: var(--color-text);
+  text-align: left;
+  box-shadow: 0 8px 24px var(--banner-shadow);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  animation: banner-in 260ms var(--ease-app) both;
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+}
+
+.banner__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.banner__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.banner__text {
+  overflow: hidden;
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner {
+    animation-name: fade-in;
+  }
 }

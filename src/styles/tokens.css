@@ -57,6 +57,28 @@
   --app-calendar: #ff453a;
   --app-notes: #ffcc00;
   --app-settings: #8e8e93;
+
+  --person-seoha: #b7835a;
+  --person-ian: #7d8cc4;
+  --person-daon: #4f6d7a;
+  --person-boss: #8a7a5c;
+  --person-halmeoni: #c77d8e;
+  --person-choi: #c0603f;
+  --person-guard: #6f8a5b;
+  --avatar-text: #ffffff;
+
+  /* 메신저 */
+  --chat-bg: #eef1f5;
+  --bubble-me: #f2685c;
+  --bubble-me-text: #ffffff;
+  --bubble-other: #ffffff;
+  --bubble-other-text: #15171a;
+  --chat-system: rgba(0, 0, 0, 0.06);
+  --chat-meta: #8b9099;
+  --photo-placeholder: linear-gradient(135deg, #d9dde4, #c4cad3);
+  --viewer-bg: rgba(0, 0, 0, 0.92);
+  --banner-bg: rgba(255, 255, 255, 0.86);
+  --banner-shadow: rgba(0, 0, 0, 0.18);
   --app-icon-fg: #ffffff;
 }
 
@@ -86,5 +108,15 @@
     --lock-gradient: linear-gradient(180deg, #121a2e 0%, #3a2140 60%, #4d2d2a 100%);
     --wallpaper-edge: #5a3a32;
     --lock-edge: #4d2d2a;
+
+    --chat-bg: #0e1116;
+    --bubble-me: #e75f53;
+    --bubble-other: #252a31;
+    --bubble-other-text: #eef0f3;
+    --chat-system: rgba(255, 255, 255, 0.08);
+    --chat-meta: #7d838c;
+    --photo-placeholder: linear-gradient(135deg, #2c323b, #20252c);
+    --banner-bg: rgba(40, 44, 52, 0.88);
+    --banner-shadow: rgba(0, 0, 0, 0.5);
   }
 }

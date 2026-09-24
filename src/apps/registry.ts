@@ -23,13 +23,11 @@ export interface AppDef {
   name: string
   Icon: LucideIcon
   color: string
-  /** 홈 아이콘 배지 (M1은 더미) */
-  badge?: number
   Component: ComponentType<AppProps>
 }
 
 export const APPS: AppDef[] = [
-  { id: 'messenger', name: '메신저', Icon: MessageCircle, color: 'var(--app-messenger)', badge: 3, Component: MessengerApp },
+  { id: 'messenger', name: '메신저', Icon: MessageCircle, color: 'var(--app-messenger)', Component: MessengerApp },
   { id: 'call', name: '전화', Icon: Phone, color: 'var(--app-call)', Component: CallApp },
   { id: 'photos', name: '사진', Icon: Images, color: 'var(--app-photos)', Component: PhotosApp },
   { id: 'calendar', name: '캘린더', Icon: CalendarDays, color: 'var(--app-calendar)', Component: CalendarApp },

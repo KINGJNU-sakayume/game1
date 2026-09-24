@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import ink from './scripts/vitePluginInk.ts'
 
 const BASE = '/game1/'
 
@@ -8,6 +9,7 @@ export default defineConfig({
   base: BASE,
   plugins: [
     react(),
+    ink(),
     VitePWA({
       registerType: 'autoUpdate',
       includeManifestIcons: false, // globPatterns가 이미 icons/*.png를 포함

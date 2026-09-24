@@ -4,6 +4,10 @@ import SetupScreen from './phone/SetupScreen'
 import LockScreen from './phone/LockScreen'
 import HomeScreen from './phone/HomeScreen'
 import AppShell from './phone/AppShell'
+import NotificationBanner from './phone/NotificationBanner'
+import { director } from './engine/director'
+import { store } from './engine/store'
+import type { RoomId } from './story/cast'
 import { getApp } from './apps/registry'
 import type { AppId } from './apps/registry'
 import { clearAll, loadProfile, saveProfile } from './state/storage'
@@ -29,9 +33,16 @@ export default function App() {
     document.documentElement.dataset.screen = edge
   }, [edge])
 
+  // 설정을 마치면 대본이 흐르기 시작한다 (잠금화면에서도 메시지가 도착한다)
+  const playerName = profile?.name
+  useEffect(() => {
+    if (playerName) director.start(playerName)
+  }, [playerName])
+
   function updateProfile(next: Profile) {
     saveProfile(next)
     setProfile(next)
+    director.setPlayerName(next.name)
   }
 
   function completeSetup(name: string) {
@@ -50,6 +61,13 @@ export default function App() {
     setOpenApp({ id, origin, closing: false })
   }
 
+  /** 알림을 눌러 메신저의 해당 방으로 */
+  function openRoom(room: RoomId, rect: DOMRect) {
+    store.set({ requestedRoom: room })
+    setScreen('home')
+    if (openApp?.id !== 'messenger' || openApp.closing) open('messenger', rect)
+  }
+
   function close() {
     setOpenApp((app) => (app && !app.closing ? { ...app, closing: true } : app))
   }
@@ -57,6 +75,7 @@ export default function App() {
   const handleClosed = useCallback(() => setOpenApp(null), [])
 
   function reset() {
+    director.reset()
     clearAll()
     setOpenApp(null)
     setProfile(null)
@@ -67,7 +86,7 @@ export default function App() {
   if (!profile || screen === 'setup') {
     content = <SetupScreen onComplete={completeSetup} />
   } else if (screen === 'lock') {
-    content = <LockScreen onUnlock={() => setScreen('home')} />
+    content = <LockScreen onUnlock={() => setScreen('home')} onOpenRoom={openRoom} />
   } else {
     const app = openApp && getApp(openApp.id)
     content = (
@@ -89,6 +108,7 @@ export default function App() {
             />
           </AppShell>
         )}
+        <NotificationBanner onOpen={openRoom} />
       </>
     )
   }
