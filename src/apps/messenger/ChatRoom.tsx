@@ -6,7 +6,9 @@ import { director } from '../../engine/director'
 import { setViewingRoom, useGame } from '../../engine/store'
 import type { ChatMessage } from '../../engine/store'
 import { PEOPLE, ROOMS } from '../../story/cast'
-import type { RoomId, SenderId } from '../../story/cast'
+import type { PersonId, RoomId, SenderId } from '../../story/cast'
+import { useSignal } from '../../story/useSignal'
+import ProfileCard from './ProfileCard'
 import { formatDay } from '../../state/gameClock'
 import { useAppHeader } from '../../phone/appHeader'
 
@@ -26,12 +28,16 @@ export default function ChatRoom({ room, onBack }: Props) {
   const choice = useGame((s) => s.choice)
   const composing = useGame((s) => (s.composing?.room === room ? s.composing.text : null))
   const [viewing, setViewing] = useState<ChatMessage | null>(null)
+  const [profile, setProfile] = useState<PersonId | null>(null)
+  const partner = info.group ? null : info.members[0]
+  const { status } = useSignal(partner ?? 'system')
   const logRef = useRef<HTMLDivElement>(null)
 
   const messages = useMemo(() => allMessages.filter((m) => m.room === room), [allMessages, room])
   const replies = choice?.kind === 'reply' && choice.room === room && composing === null ? choice.options : null
 
-  useAppHeader({ title: info.name, subtitle: info.group ? `${info.members.length + 1}명` : undefined, onBack })
+  // 1:1 방은 상대의 상태 메시지를 헤더에 보여준다 (호감 신호)
+  useAppHeader({ title: info.name, subtitle: info.group ? `${info.members.length + 1}명` : status || undefined, onBack })
 
   useEffect(() => {
     setViewingRoom(room)
@@ -56,7 +62,14 @@ export default function ChatRoom({ room, onBack }: Props) {
           return (
             <Fragment key={m.id}>
               {newDay && <div className="chat-day">{formatDay(m.day)}</div>}
-              <MessageRow message={m} group={info.group} runStart={runStart} runEnd={runEnd} onPhoto={setViewing} />
+              <MessageRow
+                message={m}
+                group={info.group}
+                runStart={runStart}
+                runEnd={runEnd}
+                onPhoto={setViewing}
+                onProfile={setProfile}
+              />
             </Fragment>
           )
         })}
@@ -102,6 +115,8 @@ export default function ChatRoom({ room, onBack }: Props) {
         </div>
       )}
 
+      {profile && <ProfileCard id={profile} onClose={() => setProfile(null)} />}
+
       {viewing?.photo && (
         <div className="photo-viewer" role="dialog" aria-label="사진 보기" onClick={() => setViewing(null)}>
           <button type="button" className="photo-viewer__close" aria-label="닫기">
@@ -120,9 +135,10 @@ interface RowProps {
   runStart: boolean
   runEnd: boolean
   onPhoto: (m: ChatMessage) => void
+  onProfile: (id: PersonId) => void
 }
 
-function MessageRow({ message: m, group, runStart, runEnd, onPhoto }: RowProps) {
+function MessageRow({ message: m, group, runStart, runEnd, onPhoto, onProfile }: RowProps) {
   if (m.from === 'system') return <div className="chat-system">{m.text}</div>
 
   const mine = m.from === 'me'
@@ -135,7 +151,14 @@ function MessageRow({ message: m, group, runStart, runEnd, onPhoto }: RowProps) 
   ) : (
     <div className="bubble">{m.text}</div>
   )
-  const time = runEnd ? <span className="msg__time">{m.time}</span> : null
+  const unread = mine && m.read === false
+  const time =
+    runEnd || unread ? (
+      <span className="msg__meta">
+        {unread && <span className="msg__unread">1</span>}
+        {runEnd && <span className="msg__time">{m.time}</span>}
+      </span>
+    ) : null
 
   if (mine) {
     return (
@@ -147,7 +170,18 @@ function MessageRow({ message: m, group, runStart, runEnd, onPhoto }: RowProps) 
   }
   return (
     <div className={`msg msg--other${runStart ? ' msg--run-start' : ''}`}>
-      {runStart ? <Avatar id={m.from} size={36} /> : <span className="msg__avatar-space" />}
+      {runStart ? (
+        <button
+          type="button"
+          className="msg__avatar-button"
+          onClick={() => onProfile(m.from as PersonId)}
+          aria-label={`${senderName(m.from)} 프로필`}
+        >
+          <Avatar id={m.from} size={36} />
+        </button>
+      ) : (
+        <span className="msg__avatar-space" />
+      )}
       <div className="msg__col">
         {runStart && group && <span className="msg__name">{senderName(m.from)}</span>}
         <div className="msg__line">

@@ -1,5 +1,6 @@
 import { PEOPLE } from '../story/cast'
 import type { SenderId } from '../story/cast'
+import { useSignal } from '../story/useSignal'
 import { asset } from '../state/assets'
 import { useImageLoaded } from './useImage'
 import './components.css'
@@ -9,10 +10,11 @@ interface Props {
   size?: number
 }
 
-/** 프로필 사진. 파일이 없으면 이름 첫 글자 아바타 */
+/** 프로필 사진 (호감 단계에 따라 바뀜). 파일이 없으면 이름 첫 글자 아바타 */
 export default function Avatar({ id, size = 40 }: Props) {
   const person = id === 'me' || id === 'system' ? null : PEOPLE[id]
-  const src = person?.pfp ? asset(`ui/${person.pfp}.webp`) : null
+  const { pfp } = useSignal(id)
+  const src = pfp ? asset(`ui/${pfp}.webp`) : null
   const loaded = useImageLoaded(src)
   const style = { width: size, height: size, fontSize: size * 0.42, background: person?.color }
 

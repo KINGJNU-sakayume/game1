@@ -2,6 +2,8 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { AppProps } from '../registry'
 import { loadSettings, saveSettings } from '../../state/storage'
+import { listDays } from '../../engine/save'
+import { formatDay } from '../../state/gameClock'
 import type { TextSpeed } from '../../state/storage'
 
 const SPEEDS: { value: TextSpeed; label: string }[] = [
@@ -10,11 +12,14 @@ const SPEEDS: { value: TextSpeed; label: string }[] = [
   { value: 'fast', label: '빠름' },
 ]
 
-export default function SettingsApp({ profile, onRename, onReset }: AppProps) {
+type Confirm = { kind: 'reset' } | { kind: 'rewind'; day: number }
+
+export default function SettingsApp({ profile, onRename, onReset, onRewind }: AppProps) {
   const [settings, setSettings] = useState(loadSettings)
   const [name, setName] = useState(profile.name)
   const [renamed, setRenamed] = useState(false)
-  const [confirming, setConfirming] = useState(false)
+  const [confirming, setConfirming] = useState<Confirm | null>(null)
+  const [days] = useState(listDays)
   const trimmed = name.trim()
 
   function changeSpeed(textSpeed: TextSpeed) {
@@ -78,14 +83,36 @@ export default function SettingsApp({ profile, onRename, onReset }: AppProps) {
       </section>
 
       <section className="settings__section">
+        <h2 className="settings__label">날짜 선택</h2>
+        {days.length === 0 ? (
+          <p className="settings__note">아직 지난 날짜가 없습니다.</p>
+        ) : (
+          <div className="settings__list">
+            {days.map((d) => (
+              <button
+                key={d.day}
+                type="button"
+                className="settings__list-item"
+                onClick={() => setConfirming({ kind: 'rewind', day: d.day })}
+              >
+                <span>{formatDay(d.day)}</span>
+                <span className="settings__list-meta">D{d.day}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <p className="settings__note">고른 날짜의 시작부터 다시 합니다. 게임은 자동 저장됩니다.</p>
+      </section>
+
+      <section className="settings__section">
         <h2 className="settings__label">데이터</h2>
-        <button type="button" className="btn-danger" onClick={() => setConfirming(true)}>
+        <button type="button" className="btn-danger" onClick={() => setConfirming({ kind: 'reset' })}>
           데이터 초기화
         </button>
       </section>
 
       {confirming && (
-        <div className="modal-scrim" onClick={() => setConfirming(false)}>
+        <div className="modal-scrim" onClick={() => setConfirming(null)}>
           <div
             className="modal"
             role="alertdialog"
@@ -96,19 +123,27 @@ export default function SettingsApp({ profile, onRename, onReset }: AppProps) {
           >
             <div className="modal__body">
               <h3 className="modal__title" id="reset-title">
-                데이터를 초기화할까요?
+                {confirming.kind === 'reset' ? '데이터를 초기화할까요?' : `${formatDay(confirming.day)}부터 다시 할까요?`}
               </h3>
               <p className="modal__text" id="reset-text">
-                이름과 설정, 진행 상황이 모두 지워지고 처음부터 시작합니다.
+                {confirming.kind === 'reset'
+                  ? '이름과 설정, 진행 상황이 모두 지워지고 처음부터 시작합니다.'
+                  : '그날 이후의 진행은 사라집니다.'}
               </p>
             </div>
             <div className="modal__actions">
-              <button type="button" onClick={() => setConfirming(false)}>
+              <button type="button" onClick={() => setConfirming(null)}>
                 취소
               </button>
-              <button type="button" className="modal__confirm" onClick={onReset}>
-                초기화
-              </button>
+              {confirming.kind === 'reset' ? (
+                <button type="button" className="modal__confirm" onClick={onReset}>
+                  초기화
+                </button>
+              ) : (
+                <button type="button" className="modal__confirm" onClick={() => onRewind(confirming.day)}>
+                  다시 하기
+                </button>
+              )}
             </div>
           </div>
         </div>

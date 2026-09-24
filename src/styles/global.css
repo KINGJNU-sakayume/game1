@@ -641,6 +641,31 @@ img {
   min-height: 1.4em;
 }
 
+.settings__list {
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+
+.settings__list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: 0 16px;
+  font-size: 16px;
+}
+
+.settings__list-item + .settings__list-item {
+  border-top: 1px solid var(--color-border);
+}
+
+.settings__list-meta {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
 .segmented {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
