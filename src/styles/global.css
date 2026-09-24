@@ -13,12 +13,53 @@ body,
   overscroll-behavior: none;
 }
 
+/*
+ * 현재 화면의 하단 색. iOS가 게임 루트 바깥(뷰포트 계산 오차, 사파리 툴바 뒤)에
+ * html·body 배경을 칠하므로, 흰 띠 대신 화면과 이어지는 색이 보이게 한다.
+ * data-screen은 App.tsx에서 설정한다.
+ */
+html {
+  --edge-color: var(--color-bg);
+  background: var(--edge-color);
+}
+
+html[data-screen='lock'] {
+  --edge-color: var(--lock-edge);
+}
+
+html[data-screen='home'] {
+  --edge-color: var(--wallpaper-edge);
+}
+
+/*
+ * iOS 홈 화면 앱(black-translucent + viewport-fit=cover)에서는 WebKit이
+ * 100%·100dvh를 상단 safe-area만큼 짧게 계산해 하단에 빈 띠가 생긴다.
+ * 100lvh만 실제 화면 높이를 돌려주므로 standalone에서만 바꾼다.
+ */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  :root {
+    --app-height: 100lvh;
+  }
+
+  html,
+  body,
+  #root,
+  .phone-stage {
+    height: 100lvh;
+  }
+
+  body,
+  .phone-stage {
+    bottom: auto;
+  }
+}
+
 body {
   position: fixed;
   inset: 0;
   font-family: var(--font-sans);
   color: var(--color-text);
-  background: var(--color-bg);
+  background: var(--edge-color);
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -60,13 +101,13 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg);
+  background: var(--edge-color);
 }
 
 .phone {
   position: relative;
   width: 100%;
-  height: 100dvh;
+  height: var(--app-height);
   overflow: hidden;
   background: var(--color-bg);
   isolation: isolate;

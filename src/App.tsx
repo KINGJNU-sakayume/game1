@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import PhoneFrame from './phone/PhoneFrame'
 import SetupScreen from './phone/SetupScreen'
 import LockScreen from './phone/LockScreen'
@@ -22,6 +22,12 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>(() => (profile ? 'lock' : 'setup'))
   const [openApp, setOpenApp] = useState<OpenApp | null>(null)
   const phoneRef = useRef<HTMLDivElement>(null)
+
+  // 화면 바깥 가장자리 색을 현재 화면에 맞춘다 (global.css의 html[data-screen])
+  const edge = !profile ? 'setup' : openApp ? 'app' : screen
+  useEffect(() => {
+    document.documentElement.dataset.screen = edge
+  }, [edge])
 
   function updateProfile(next: Profile) {
     saveProfile(next)
