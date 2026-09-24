@@ -12,9 +12,9 @@ import './stage.css'
 /** 글자 수/초 */
 const TYPE_SPEED = { slow: 18, normal: 32, fast: 70 } as const
 
-/** 컷 이름으로 폴더를 고른다: bg_로 시작하면 배경, 아니면 cg */
+/** 컷 이미지 (폴더는 파일명 규칙으로 정해진다) */
 function StageImage({ name }: { name: string }) {
-  return <StoryImage folder={name.startsWith('bg_') ? 'backgrounds' : 'cg'} name={name} alt="" className="stage__img" />
+  return <StoryImage name={name} alt="" className="stage__img" />
 }
 
 /** 한 글자씩 나타나는 대사. 탭하면 바로 끝까지 */

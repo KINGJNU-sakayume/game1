@@ -1,7 +1,7 @@
 import { PEOPLE } from '../story/cast'
 import type { SenderId } from '../story/cast'
 import { useSignal } from '../story/useSignal'
-import { asset } from '../state/assets'
+import { storyAsset } from '../state/assets'
 import { useImageLoaded } from './useImage'
 import './components.css'
 
@@ -14,7 +14,7 @@ interface Props {
 export default function Avatar({ id, size = 40 }: Props) {
   const person = id === 'me' || id === 'system' ? null : PEOPLE[id]
   const { pfp } = useSignal(id)
-  const src = pfp ? asset(`ui/${pfp}.webp`) : null
+  const src = pfp ? storyAsset(pfp) : null
   const loaded = useImageLoaded(src)
   const style = { width: size, height: size, fontSize: size * 0.42, background: person?.color }
 

@@ -145,7 +145,7 @@ function MessageRow({ message: m, group, runStart, runEnd, onPhoto, onProfile }:
   const mine = m.from === 'me'
   const body = m.photo ? (
     <button type="button" className="bubble bubble--photo" onClick={() => onPhoto(m)} aria-label={`사진: ${m.text}`}>
-      <StoryImage folder="cg" name={m.photo} alt={m.text} />
+      <StoryImage name={m.photo} alt={m.text} />
     </button>
   ) : m.big ? (
     <div className="bubble bubble--big">{m.text}</div>

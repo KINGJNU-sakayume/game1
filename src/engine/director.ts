@@ -57,6 +57,8 @@ let pendingKind: PendingChoice['kind'] = 'reply'
 let pendingContext = ''
 let pendingOptions: ChoiceOption[] = []
 let summaryResolve: (() => void) | null = null
+/** # ask: 로 정한 다음 menu 선택지의 제목 */
+let pendingAsk: string | null = null
 let cleanupChoice: (() => void) | null = null
 /** 대면·통화 대사에서 탭을 기다리는 중 */
 let advanceResolve: (() => void) | null = null
@@ -313,6 +315,7 @@ async function handleLine(text: string, tags: Tags, gen: number): Promise<boolea
   if (tags.wait !== undefined) await sleep(Number.parseFloat(tags.wait) || 0, gen)
   await handleStageTags(tags, gen)
   const consumed = handleJournalTags(text, tags)
+  if (tags.ask) pendingAsk = tags.ask
 
   if (!text || consumed) return newDay
   if (lastChosen !== null && text === lastChosen && tags.from === undefined) {
@@ -382,26 +385,28 @@ function askChoice(): Promise<ChoiceOption> {
         ? 'stage'
         : options.every((o) => o.openRoom)
           ? 'open'
-          : 'reply'
+          : options.every((o) => o.act)
+            ? 'menu'
+            : 'reply'
+  const title = kind === 'menu' ? (pendingAsk ?? '무엇을 할까?') : undefined
+  pendingAsk = null
   pendingKind = kind
   pendingOptions = options
   const who = stage?.call ? PEOPLE[stage.call.who].name : ''
-  pendingContext =
-    kind === 'reply'
-      ? ROOMS[currentRoom].name
-      : kind === 'open'
-        ? '먼저 연 대화방'
-        : kind === 'call'
-          ? `${who} 전화`
-          : stage?.kind === 'call'
-            ? `${who} 통화`
-            : '대면'
+  const contexts: Record<PendingChoice['kind'], string> = {
+    reply: ROOMS[currentRoom].name,
+    menu: title ?? '',
+    open: '먼저 연 대화방',
+    call: `${who} 전화`,
+    stage: stage?.kind === 'call' ? `${who} 통화` : '대면',
+  }
+  pendingContext = contexts[kind]
   // 선택지 앞은 다시 불러와도 똑같이 이어지는 지점이므로 여기서 이어하기 저장
   saveResume(snapshot(), store.get().messages)
 
   return new Promise((resolve) => {
     pendingResolve = resolve
-    store.set({ choice: { kind, room: kind === 'reply' ? currentRoom : null, options } })
+    store.set({ choice: { kind, room: kind === 'reply' ? currentRoom : null, options, title } })
     if (kind === 'open') {
       // 먼저 연 방이 곧 선택이다
       const check = () => {
@@ -588,6 +593,7 @@ export const director = {
     story = null
     currentRoom = 'dangol'
     lastChosen = null
+    pendingAsk = null
     pendingResolve = null
     advanceResolve = null
     summaryResolve = null

@@ -21,7 +21,7 @@ export default function PhotoViewer({ name, alt, from, onClose }: Props) {
       <button type="button" className="photo-viewer__close" aria-label="닫기">
         <X size={26} />
       </button>
-      <StoryImage folder="cg" name={name} alt={alt} className="photo-viewer__image" />
+      <StoryImage name={name} alt={alt} className="photo-viewer__image" />
       {from !== undefined && (
         <button
           type="button"

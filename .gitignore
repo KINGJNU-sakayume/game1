@@ -3,3 +3,5 @@ dist
 dev-dist
 *.local
 .DS_Store
+# raw/ 에서 자동 변환되는 게임용 이미지 (scripts/convert-images.mjs)
+public/assets/*/*.webp

@@ -38,10 +38,15 @@ export interface ChoiceOption {
 }
 
 export interface PendingChoice {
-  /** reply: 방 안의 추천 답장 / open: 어느 방을 먼저 여느냐 / stage: 대면·통화 중 선택 / call: 받기·거절 */
-  kind: 'reply' | 'open' | 'stage' | 'call'
+  /**
+   * reply: 방 안의 추천 답장 / open: 어느 방을 먼저 여느냐 / stage: 대면·통화 중 선택 / call: 받기·거절
+   * menu: 메시지가 아닌 행동만 있는 선택 (밤의 할 일 등) — 화면 아래 시트로
+   */
+  kind: 'reply' | 'open' | 'stage' | 'call' | 'menu'
   room: RoomId | null
   options: ChoiceOption[]
+  /** menu 시트 제목 */
+  title?: string
 }
 
 /** 대면 장면·통화 화면에 한 줄씩 나오는 대사 */

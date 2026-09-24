@@ -7,6 +7,7 @@ import AppShell from './phone/AppShell'
 import NotificationBanner from './phone/NotificationBanner'
 import Stage from './phone/Stage'
 import DaySummary from './phone/DaySummary'
+import MenuSheet from './phone/MenuSheet'
 import { director } from './engine/director'
 import { store, useGame } from './engine/store'
 import type { RoomId } from './story/cast'
@@ -126,6 +127,7 @@ export default function App() {
     <PhoneFrame ref={phoneRef}>
       {content}
       {profile && screen !== 'setup' && <Stage />}
+      {profile && screen !== 'setup' && <MenuSheet />}
       {profile && screen !== 'setup' && <DaySummary />}
     </PhoneFrame>
   )
