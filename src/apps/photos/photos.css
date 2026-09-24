@@ -1,0 +1,30 @@
+.photos {
+  padding: 8px 2px 24px;
+}
+
+.photos__day {
+  margin: 12px 12px 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.photos__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.photos__item {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+
+.photos__item .story-image {
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.photos__item .story-image--placeholder {
+  font-size: 10px;
+}

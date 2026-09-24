@@ -33,6 +33,8 @@ export interface ChoiceOption {
   /** 전화 수신 화면의 받기 / 거절 */
   answer: boolean
   decline: boolean
+  /** 썼다 지운 말을 메모 앱 "보내지 못한 말"에 남긴다 */
+  keep: boolean
 }
 
 export interface PendingChoice {
@@ -97,8 +99,62 @@ export interface Stats {
   skill: number
 }
 
+export interface SavedPhoto {
+  name: string
+  /** 받은 사진이면 보낸 사람, 주인공이 찍은 사진이면 없음 */
+  from: SenderId | null
+  day: number
+  time: string
+}
+
+export interface Plan {
+  id: string
+  day: number
+  time: string
+  title: string
+}
+
+export interface Note {
+  /** note: 주인공 메모 / page: 김 사장님 수첩 / unsent: 보내지 못한 말 */
+  kind: 'note' | 'page' | 'unsent'
+  title: string
+  body: string[]
+  day: number
+  time: string
+}
+
+export interface Todo {
+  id: string
+  text: string
+  done: boolean
+}
+
+/** 하루 결산 흐름도에 쓰는 선택 기록 */
+export interface ChoiceRecord {
+  day: number
+  time: string
+  /** 어디서 고른 선택인지 (방 이름, 대면, 전화 …) */
+  context: string
+  options: string[]
+  chosen: number
+}
+
+/** 대본이 만드는 기록: 사진첩·캘린더·메모·흐름도. 저장본에 함께 들어간다 */
+export interface Journal {
+  photos: SavedPhoto[]
+  plans: Plan[]
+  notes: Note[]
+  todos: Todo[]
+  history: ChoiceRecord[]
+}
+
+export const EMPTY_JOURNAL: Journal = { photos: [], plans: [], notes: [], todos: [], history: [] }
+
 export interface GameState {
   clock: { day: number; time: string }
+  journal: Journal
+  /** 하루 결산 화면 */
+  summary: { day: number } | null
   stats: Stats
   messages: ChatMessage[]
   unread: Partial<Record<RoomId, number>>
@@ -118,6 +174,8 @@ export interface GameState {
 
 export const INITIAL_STATE: GameState = {
   clock: { day: 1, time: '08:12' },
+  journal: EMPTY_JOURNAL,
+  summary: null,
   stats: { aff: { seoha: 0, ian: 0, daon: 0 }, skill: 0 },
   messages: [],
   unread: {},
@@ -180,6 +238,19 @@ export function pushMessage(message: Omit<ChatMessage, 'id' | 'day' | 'time'>) {
           : { id: nextBannerId++, room: message.room, from: message.from, text: previewText(full) },
     }
   })
+}
+
+export function updateJournal(update: (j: Journal) => Partial<Journal>) {
+  store.set((s) => ({ journal: { ...s.journal, ...update(s.journal) } }))
+}
+
+/** 사진첩에 저장 (이미 있으면 무시) */
+export function savePhoto(name: string, from: SenderId | null) {
+  updateJournal((j) =>
+    j.photos.some((p) => p.name === name)
+      ? {}
+      : { photos: [...j.photos, { name, from, day: state.clock.day, time: state.clock.time }] },
+  )
 }
 
 export function setStage(update: Partial<Stage> | null) {

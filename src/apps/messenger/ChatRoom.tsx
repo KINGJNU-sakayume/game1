@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Send, X } from 'lucide-react'
+import { Send } from 'lucide-react'
 import Avatar from '../../components/Avatar'
 import StoryImage from '../../components/StoryImage'
+import PhotoViewer from '../../components/PhotoViewer'
 import { director } from '../../engine/director'
 import { setViewingRoom, useGame } from '../../engine/store'
 import type { ChatMessage } from '../../engine/store'
@@ -118,12 +119,12 @@ export default function ChatRoom({ room, onBack }: Props) {
       {profile && <ProfileCard id={profile} onClose={() => setProfile(null)} />}
 
       {viewing?.photo && (
-        <div className="photo-viewer" role="dialog" aria-label="사진 보기" onClick={() => setViewing(null)}>
-          <button type="button" className="photo-viewer__close" aria-label="닫기">
-            <X size={26} />
-          </button>
-          <StoryImage folder="cg" name={viewing.photo} alt={viewing.text} className="photo-viewer__image" />
-        </div>
+        <PhotoViewer
+          name={viewing.photo}
+          alt={viewing.text}
+          from={viewing.from === 'me' ? undefined : viewing.from}
+          onClose={() => setViewing(null)}
+        />
       )}
     </div>
   )

@@ -4,7 +4,7 @@
 // 메시지 기록(log)은 앞부분이 공유되므로 한 번만 저장하고, 각 저장본은 메시지 개수만 기억한다.
 import { load, remove, save } from '../state/storage'
 import type { RoomId } from '../story/cast'
-import type { CallRecord, ChatMessage, GameState, Stage } from './store'
+import type { CallRecord, ChatMessage, GameState, Journal, Stage } from './store'
 
 const VERSION = 1
 
@@ -20,6 +20,8 @@ export interface Snapshot {
   /** 대면·통화 중이었다면 그 화면 (M4) */
   stage?: Stage | null
   calls?: CallRecord[]
+  /** 사진첩·캘린더·메모·흐름도 (M5) */
+  journal?: Journal
   savedAt: number
 }
 
