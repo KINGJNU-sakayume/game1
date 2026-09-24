@@ -95,6 +95,48 @@
 * [커피는 제가 살게요]
     ~ raise(aff_seoha, 5)
     그럼 오늘 오후에 들러요 :)
+- -> demo_scene
+
+// 대면 장면: 폰이 꺼지듯 어두워지고 1인칭 컷 + 대사창 (M4)
+=== demo_scene ===
+# time: 14:00 # scene: bg_cafe_day_01
+카페 오후세시. 문을 열자 커피 냄새가 먼저 온다.
+# cut: seoha_scene_machine_01 # from: seoha
+오셨어요? 이거예요, 스팀이 하나도 안 나와요.
+(유튜브에서 본 거랑 모양이 다르다.)
+* [아는 척 도전하기]
+    ~ raise(aff_seoha, -5)
+    # fx: shake
+    푸슉— 뜨거운 김이 사방으로 튄다.
+    # from: seoha
+    괜찮아요?!
+* [솔직하게 모른다고 하기 # say: 솔직히 이 모델은 처음 봐요. 같이 설명서 찾아봐도 될까요?]
+    ~ raise(aff_seoha, 10)
+    # fx: zoom # from: seoha
+    …그런 말 하는 사람 처음 봐요.
+- # fade
+그날 오후는 생각보다 길었다.
+# scene: end
+-> demo_call
+
+// 영상통화: 받기 / 거절이 선택 (M4)
+=== demo_call ===
+# time: 23:40 # wait: 1.5
+# call: ian # video
+* [받기 # answer]
+    # cut: ian_call_night_01
+    앗 받았다 ㅋㅋ 안 자고 있었죠?
+    형광등 진짜 고마워서요. 얼굴 보고 말하고 싶었어요.
+    * * [나도 얼굴 보니까 좋네요]
+        ~ raise(aff_ian, 10)
+        헉 ㅋㅋㅋ 잘 자요!!
+    * * [내일 또 깜빡이면 불러요]
+        네 ㅋㅋ 그럼 잘 자요
+    - - # call: end
+* [거절 # decline]
+    ~ raise(aff_ian, -5)
+    # room: ian # typing: 1
+    앗 자는구나 🥲
 - # room: dangol # from: system # wait: 1
 엔진 시험 대본이 끝났습니다.
 -> END

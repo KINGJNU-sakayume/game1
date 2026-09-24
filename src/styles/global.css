@@ -31,6 +31,10 @@ html[data-screen='home'] {
   --edge-color: var(--wallpaper-edge);
 }
 
+html[data-screen='stage'] {
+  --edge-color: var(--stage-bg);
+}
+
 /*
  * iOS 홈 화면 앱(black-translucent + viewport-fit=cover)에서는 WebKit이
  * 100%·100dvh를 상단 safe-area만큼 짧게 계산해 하단에 빈 띠가 생긴다.
