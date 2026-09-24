@@ -1,0 +1,83 @@
+/* 색·크기 토큰. 색은 여기서만 정의한다. */
+:root {
+  color-scheme: light dark;
+
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+
+  --phone-width: 390px;
+  --phone-height: 844px;
+  --phone-radius: 48px;
+  --touch-min: 44px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --dur-app: 220ms;
+  --ease-app: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* 라이트 */
+  --color-desk: #d9dce1;
+  --color-desk-accent: #c5cad2;
+  --color-frame-shadow: rgba(20, 24, 32, 0.35);
+  --color-bezel: #1b1d21;
+
+  --color-bg: #f2f3f5;
+  --color-surface: #ffffff;
+  --color-surface-muted: #e7e9ed;
+  --color-text: #15171a;
+  --color-text-muted: #6b7079;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-accent: #f2685c;
+  --color-accent-text: #ffffff;
+  --color-danger: #e5484d;
+  --color-badge: #ff3b30;
+  --color-badge-text: #ffffff;
+  --color-scrim: rgba(0, 0, 0, 0.4);
+
+  --color-on-wallpaper: #ffffff;
+  --color-on-wallpaper-muted: rgba(255, 255, 255, 0.82);
+  --color-glass: rgba(20, 24, 40, 0.2);
+  --color-glass-strong: rgba(255, 255, 255, 0.55);
+  --color-glass-text: #15171a;
+  --color-indicator: rgba(255, 255, 255, 0.85);
+  --color-indicator-on-app: rgba(0, 0, 0, 0.35);
+  --color-text-shadow: rgba(0, 0, 0, 0.25);
+
+  --wallpaper-gradient: linear-gradient(160deg, #6f97d6 0%, #cf8fb0 55%, #e2a489 100%);
+  --lock-gradient: linear-gradient(180deg, #6c86b8 0%, #c48aa6 60%, #e8b6a3 100%);
+
+  --app-messenger: #34c759;
+  --app-call: #30b0c7;
+  --app-photos: #ff9f0a;
+  --app-calendar: #ff453a;
+  --app-notes: #ffcc00;
+  --app-settings: #8e8e93;
+  --app-icon-fg: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-desk: #0b0c0e;
+    --color-desk-accent: #16181c;
+    --color-frame-shadow: rgba(0, 0, 0, 0.7);
+    --color-bezel: #2a2d33;
+
+    --color-bg: #101418;
+    --color-surface: #1c2026;
+    --color-surface-muted: #2a2f36;
+    --color-text: #eef0f3;
+    --color-text-muted: #9aa0a9;
+    --color-border: rgba(255, 255, 255, 0.1);
+    --color-accent: #ff7a6e;
+    --color-danger: #ff6369;
+    --color-scrim: rgba(0, 0, 0, 0.6);
+
+    --color-glass: rgba(20, 22, 28, 0.35);
+    --color-glass-strong: rgba(30, 33, 40, 0.6);
+    --color-glass-text: #eef0f3;
+    --color-indicator-on-app: rgba(255, 255, 255, 0.45);
+
+    --wallpaper-gradient: linear-gradient(160deg, #1f2d4d 0%, #4b2a4a 55%, #5a3a32 100%);
+    --lock-gradient: linear-gradient(180deg, #121a2e 0%, #3a2140 60%, #4d2d2a 100%);
+  }
+}
