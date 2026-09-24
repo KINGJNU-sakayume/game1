@@ -74,6 +74,10 @@ export default function App() {
 
   const handleClosed = useCallback(() => setOpenApp(null), [])
 
+  function rewind(day: number) {
+    if (profile && director.rewind(day, profile.name)) close()
+  }
+
   function reset() {
     director.reset()
     clearAll()
@@ -105,6 +109,7 @@ export default function App() {
               profile={profile}
               onRename={(name) => updateProfile({ ...profile, name })}
               onReset={reset}
+              onRewind={rewind}
             />
           </AppShell>
         )}

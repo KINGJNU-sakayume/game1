@@ -2,11 +2,22 @@
 // 문법은 docs/05_스크립트_문법.md 참조.
 import { Story } from 'inkjs'
 import storyData from '../../story/main.ink'
-import { ROOMS, isRoomId, isSenderId } from '../story/cast'
-import type { RoomId, SenderId } from '../story/cast'
+import {
+  DEFAULT_READ_DELAY,
+  HEROINES,
+  READ_DELAY,
+  ROOMS,
+  affectionStage,
+  isHeroine,
+  isRoomId,
+  isSenderId,
+} from '../story/cast'
+import type { HeroineId, RoomId, SenderId } from '../story/cast'
 import { loadSettings } from '../state/storage'
-import { pushMessage, store } from './store'
-import type { ChoiceOption } from './store'
+import { hasUnreadMine, markRead, pushMessage, store, syncMessageIds } from './store'
+import type { ChoiceOption, Stats } from './store'
+import { loadResume, rewindTo, saveDay, saveResume } from './save'
+import type { Snapshot } from './save'
 
 const SPEED = { slow: 1.6, normal: 1, fast: 0.5 } as const
 
@@ -49,6 +60,44 @@ function sleep(seconds: number, gen: number, scaled = true): Promise<void> {
   })
 }
 
+function readNumber(name: string): number {
+  try {
+    const value = story?.variablesState.$(name)
+    return typeof value === 'number' ? value : 0
+  } catch {
+    return 0
+  }
+}
+
+/** ink 변수 → 화면 상태 */
+function syncStats() {
+  const aff = {} as Record<HeroineId, number>
+  for (const id of HEROINES) aff[id] = Math.min(100, Math.max(0, readNumber(`aff_${id}`)))
+  const next: Stats = { aff, skill: readNumber('skill') }
+  const prev = store.get().stats
+  if (prev.skill !== next.skill || HEROINES.some((id) => prev.aff[id] !== next.aff[id])) store.set({ stats: next })
+}
+
+/** 상대가 주인공 메시지를 읽기까지 걸리는 시간 (초) */
+function readDelay(from: SenderId): number {
+  if (!isHeroine(from)) return DEFAULT_READ_DELAY
+  return READ_DELAY[from][affectionStage(store.get().stats.aff[from]) - 1]
+}
+
+function snapshot(): Snapshot {
+  const s = store.get()
+  return {
+    version: 1,
+    day: s.clock.day,
+    ink: story!.state.ToJson(),
+    messageCount: s.messages.length,
+    clock: s.clock,
+    unread: s.unread,
+    room: currentRoom,
+    savedAt: Date.now(),
+  }
+}
+
 function resolveSender(tag: string | undefined, room: RoomId): SenderId {
   if (tag !== undefined) {
     if (isSenderId(tag)) return tag
@@ -60,11 +109,16 @@ function resolveSender(tag: string | undefined, room: RoomId): SenderId {
   return 'system'
 }
 
-async function handleLine(text: string, tags: Tags, gen: number) {
+/** 한 줄을 처리한다. 날짜가 바뀌었으면 true */
+async function handleLine(text: string, tags: Tags, gen: number): Promise<boolean> {
+  let newDay = false
   if (tags.day !== undefined) {
     const day = Number.parseInt(tags.day, 10)
-    if (day > 0) store.set((s) => ({ clock: { ...s.clock, day } }))
-    else warn(`잘못된 day: ${tags.day}`)
+    if (day > 0) {
+      // 처음 시작한 대본의 첫 날짜도 시작 지점으로 남긴다
+      newDay = day !== store.get().clock.day || store.get().messages.length === 0
+      store.set((s) => ({ clock: { ...s.clock, day } }))
+    } else warn(`잘못된 day: ${tags.day}`)
   }
   if (tags.time !== undefined) {
     if (/^\d{1,2}:\d{2}$/.test(tags.time)) store.set((s) => ({ clock: { ...s.clock, time: tags.time.padStart(5, '0') } }))
@@ -76,10 +130,10 @@ async function handleLine(text: string, tags: Tags, gen: number) {
   }
   if (tags.wait !== undefined) await sleep(Number.parseFloat(tags.wait) || 0, gen)
 
-  if (!text) return
+  if (!text) return newDay
   if (lastChosen !== null && text === lastChosen && tags.from === undefined) {
     lastChosen = null
-    return
+    return newDay
   }
   lastChosen = null
 
@@ -88,6 +142,12 @@ async function handleLine(text: string, tags: Tags, gen: number) {
   if (from === 'me' || from === 'system') {
     await sleep(0.35, gen)
   } else {
+    // 1:1 방에서 상대가 답하기 전에 주인공 메시지를 읽는다 (답장 속도 = 호감 신호).
+    // # wait: 가 있으면 그 시간을 읽는 시간으로 본다
+    if (!ROOMS[room].group && hasUnreadMine(room)) {
+      if (tags.wait === undefined) await sleep(readDelay(from), gen)
+      markRead(room)
+    }
     store.set((s) => ({ typing: { ...s.typing, [room]: from } }))
     const seconds = tags.typing !== undefined ? Number.parseFloat(tags.typing) || 0 : autoTypingSeconds(text)
     try {
@@ -104,6 +164,7 @@ async function handleLine(text: string, tags: Tags, gen: number) {
     ...(tags.photo ? { photo: tags.photo } : {}),
     ...(tags.big !== undefined ? { big: true } : {}),
   })
+  return newDay
 }
 
 function askChoice(): Promise<ChoiceOption> {
@@ -121,6 +182,8 @@ function askChoice(): Promise<ChoiceOption> {
     }
   })
   const kind = options.every((o) => o.openRoom) ? 'open' : 'reply'
+  // 선택지 앞은 다시 불러와도 똑같이 이어지는 지점이므로 여기서 이어하기 저장
+  saveResume(snapshot(), store.get().messages)
 
   return new Promise((resolve) => {
     pendingResolve = resolve
@@ -179,7 +242,9 @@ async function run(gen: number) {
     while (gen === generation && story) {
       if (story.canContinue) {
         const text = (story.Continue() ?? '').trim()
-        await handleLine(text, parseTags(story.currentTags), gen)
+        syncStats()
+        const newDay = await handleLine(text, parseTags(story.currentTags), gen)
+        if (newDay && gen === generation) saveDay(snapshot(), store.get().messages)
       } else if (story.currentChoices.length > 0) {
         const room = currentRoom
         const option = await askChoice()
@@ -187,6 +252,7 @@ async function run(gen: number) {
         await sendChoice(option, room, gen)
         story.ChooseChoiceIndex(option.index)
         lastChosen = option.label
+        syncStats()
       } else {
         break // 대본 끝
       }
@@ -201,8 +267,31 @@ export const director = {
   start(playerName: string) {
     if (story) return
     story = new Story(storyData)
+    const saved = loadResume()
+    if (saved) {
+      try {
+        story.state.LoadJson(saved.snapshot.ink)
+        currentRoom = saved.snapshot.room
+        syncMessageIds(saved.messages)
+        store.set({ messages: saved.messages, clock: saved.snapshot.clock, unread: saved.snapshot.unread })
+      } catch (error) {
+        // 대본이 크게 바뀌어 저장본이 맞지 않으면 처음부터
+        console.warn('저장본을 불러오지 못해 처음부터 시작합니다', error)
+        story = new Story(storyData)
+        store.reset()
+      }
+    }
     director.setPlayerName(playerName)
+    syncStats()
     void run(++generation)
+  },
+
+  /** 그 날짜의 시작 지점부터 다시 */
+  rewind(day: number, playerName: string): boolean {
+    if (!rewindTo(day)) return false
+    director.reset()
+    director.start(playerName)
+    return true
   },
 
   setPlayerName(name: string) {

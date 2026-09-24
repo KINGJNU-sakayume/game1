@@ -1,6 +1,7 @@
 // 게임 진행 상태 저장소. React 밖(연출 엔진)에서도 쓰기 때문에 외부 저장소 + useSyncExternalStore로 만든다.
 import { useSyncExternalStore } from 'react'
-import type { RoomId, SenderId } from '../story/cast'
+import { ROOMS } from '../story/cast'
+import type { HeroineId, RoomId, SenderId } from '../story/cast'
 
 export interface ChatMessage {
   id: number
@@ -11,6 +12,8 @@ export interface ChatMessage {
   photo?: string
   /** 큰 글씨 스티커처럼 표시 */
   big?: boolean
+  /** 주인공 메시지를 상대가 읽었는지 (1:1 방) */
+  read?: boolean
   day: number
   time: string
 }
@@ -43,8 +46,16 @@ export interface Banner {
   text: string
 }
 
+export interface Stats {
+  /** 호감 0~100 (ink 변수 aff_*) */
+  aff: Record<HeroineId, number>
+  /** 수리 실력 0~3 (ink 변수 skill) */
+  skill: number
+}
+
 export interface GameState {
   clock: { day: number; time: string }
+  stats: Stats
   messages: ChatMessage[]
   unread: Partial<Record<RoomId, number>>
   /** 방별로 입력 중인 사람 */
@@ -61,6 +72,7 @@ export interface GameState {
 
 export const INITIAL_STATE: GameState = {
   clock: { day: 1, time: '08:12' },
+  stats: { aff: { seoha: 0, ian: 0, daon: 0 }, skill: 0 },
   messages: [],
   unread: {},
   typing: {},
@@ -108,6 +120,7 @@ let nextBannerId = 1
 export function pushMessage(message: Omit<ChatMessage, 'id' | 'day' | 'time'>) {
   store.set((s) => {
     const full: ChatMessage = { ...message, id: nextMessageId++, day: s.clock.day, time: s.clock.time }
+    if (message.from === 'me' && !ROOMS[message.room].group) full.read = false
     const seen = s.viewingRoom === message.room || message.from === 'me'
     const counts = !seen && message.from !== 'system'
     return {
@@ -119,6 +132,22 @@ export function pushMessage(message: Omit<ChatMessage, 'id' | 'day' | 'time'>) {
           : { id: nextBannerId++, room: message.room, from: message.from, text: previewText(full) },
     }
   })
+}
+
+/** 이 방에서 주인공이 보낸 안 읽힌 메시지가 있는지 */
+export function hasUnreadMine(room: RoomId): boolean {
+  return state.messages.some((m) => m.room === room && m.from === 'me' && m.read === false)
+}
+
+export function markRead(room: RoomId) {
+  store.set((s) => ({
+    messages: s.messages.map((m) => (m.room === room && m.from === 'me' && m.read === false ? { ...m, read: true } : m)),
+  }))
+}
+
+/** 저장본을 불러올 때 메시지 id가 겹치지 않게 */
+export function syncMessageIds(messages: ChatMessage[]) {
+  nextMessageId = messages.reduce((max, m) => Math.max(max, m.id), 0) + 1
 }
 
 export function setViewingRoom(room: RoomId | null) {

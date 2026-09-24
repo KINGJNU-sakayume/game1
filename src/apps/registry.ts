@@ -16,6 +16,8 @@ export interface AppProps {
   profile: Profile
   onRename: (name: string) => void
   onReset: () => void
+  /** 그 날짜의 시작 지점부터 다시 */
+  onRewind: (day: number) => void
 }
 
 export interface AppDef {
