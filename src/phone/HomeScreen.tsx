@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { APPS } from '../apps/registry'
 import type { AppId } from '../apps/registry'
-import { getGameTime } from '../state/gameClock'
+import { useGameTime } from '../state/gameClock'
+import { totalUnread, useGame } from '../engine/store'
 import { WALLPAPER_SRC } from '../state/assets'
 
 interface Props {
@@ -24,7 +25,8 @@ function useWallpaperAvailable(src: string) {
 }
 
 export default function HomeScreen({ onOpenApp }: Props) {
-  const { dateLabel, timeLabel } = getGameTime()
+  const { dateLabel, timeLabel } = useGameTime()
+  const messengerUnread = useGame(totalUnread)
   const hasWallpaper = useWallpaperAvailable(WALLPAPER_SRC)
   const style = hasWallpaper
     ? ({ '--wallpaper-image': `url("${WALLPAPER_SRC}")` } as CSSProperties)
@@ -38,7 +40,9 @@ export default function HomeScreen({ onOpenApp }: Props) {
       </section>
 
       <ul className="app-grid">
-        {APPS.map(({ id, name, Icon, color, badge }) => (
+        {APPS.map(({ id, name, Icon, color }) => {
+          const badge = id === 'messenger' ? messengerUnread : 0
+          return (
           <li key={id}>
             <button
               type="button"
@@ -56,7 +60,8 @@ export default function HomeScreen({ onOpenApp }: Props) {
               <span className="app-icon__label">{name}</span>
             </button>
           </li>
-        ))}
+          )
+        })}
       </ul>
     </div>
   )

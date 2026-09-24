@@ -18,6 +18,8 @@ npm run preview  # 빌드 결과 미리보기 (http://localhost:4173/game1/)
 npm run icons    # 임시 앱 아이콘(public/icons/*.png) 다시 생성
 ```
 
+대본은 `story/*.ink`(진입점 `story/main.ink`)에 쓴다. 문법은 [`docs/05_스크립트_문법.md`](docs/05_스크립트_문법.md). 빌드할 때 컴파일되며 오류가 있으면 빌드가 실패한다.
+
 ## 의존성
 
 | 패키지 | 이유 |
@@ -27,3 +29,5 @@ npm run icons    # 임시 앱 아이콘(public/icons/*.png) 다시 생성
 | typescript, @types/react, @types/react-dom | 타입 검사 |
 | lucide-react | 앱·UI 아이콘 |
 | vite-plugin-pwa | manifest·서비스워커 생성 (홈 화면 추가, 오프라인 캐시) |
+| inkjs | ink 대본 실행(런타임)과 빌드 시 컴파일(compiler) |
+| @types/node | 빌드용 ink 플러그인(scripts/vitePluginInk.ts)의 타입 검사 |
