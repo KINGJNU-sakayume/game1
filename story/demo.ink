@@ -21,7 +21,7 @@
 # room: seoha # time: 08:14
 안녕하세요, 카페 오후세시입니다.
 사장님 이번 주 방문 가능하실까요?
-* [사실 저 사장님이 아니라서요 # draft: 네 물론이죠! 언제 갈까요?]
+* [사실 저 사장님이 아니라서요 # draft: 네 물론이죠! 언제 갈까요? # keep]
     ~ raise(aff_seoha, 15)
     # typing: 2.5
     아… 번호가 바뀐 거군요.
@@ -41,7 +41,9 @@
 * [잘 모르는데… 솔직히 # say: 솔직히 잘은 모르는데, 한번 볼게요]
     ~ raise(aff_seoha, 15)
     솔직하게 말해줘서 오히려 좋네요 :)
-- -> two_rooms
+- # plan: seoha_machine, 2, 14:00, 에스프레소 머신 수리 · 카페 오후세시
+# todo: machine, 에스프레소 머신 스팀 노즐 고치는 법 찾아보기
+-> two_rooms
 
 === two_rooms ===
 # time: 21:40
@@ -84,6 +86,11 @@
 === demo_end ===
 # room: dangol # from: system # wait: 1
 첫째 날 시험 대본이 끝났습니다.
+# note: 3월 9일
+번호 하나 바꿨을 뿐인데 하루가 이렇게 길 줄은 몰랐다.
+# note: 3월 9일
+내일은 에스프레소 머신. 유튜브부터 보자.
+# dayend
 -> demo_day2
 
 // 둘째 날: 날짜 저장(체크포인트)과 호감 단계 변화 확인용
@@ -101,7 +108,7 @@
 === demo_scene ===
 # time: 14:00 # scene: bg_cafe_day_01
 카페 오후세시. 문을 열자 커피 냄새가 먼저 온다.
-# cut: seoha_scene_machine_01 # from: seoha
+# cut: seoha_scene_machine_01 # from: seoha # gallery: mc_cg_tools_01
 오셨어요? 이거예요, 스팀이 하나도 안 나와요.
 (유튜브에서 본 거랑 모양이 다르다.)
 * [아는 척 도전하기]
@@ -114,7 +121,7 @@
     ~ raise(aff_seoha, 10)
     # fx: zoom # from: seoha
     …그런 말 하는 사람 처음 봐요.
-- # fade
+- # fade # done: machine
 그날 오후는 생각보다 길었다.
 # scene: end
 -> demo_call
@@ -137,6 +144,13 @@
     ~ raise(aff_ian, -5)
     # room: ian # typing: 1
     앗 자는구나 🥲
-- # room: dangol # from: system # wait: 1
+- # room: ian
+{saved("ian_selfie_desk_01"): 아 근데 어제 사진 저장했어요? ㅋㅋ|어제 사진 봤어요? ㅋㅋ}
+# page: 에스프레소 머신 (오후세시)
+스팀 노즐 막히면 우유 찌꺼기부터. 바늘로 살살.
+# page: 에스프레소 머신 (오후세시)
+사장님이 기계 무서워함. 천천히 설명해 줄 것.
+# dayend
+# room: dangol # from: system
 엔진 시험 대본이 끝났습니다.
 -> END

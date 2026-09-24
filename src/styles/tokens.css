@@ -94,6 +94,16 @@
   --call-control: rgba(255, 255, 255, 0.18);
   --call-pip: linear-gradient(135deg, #3a4050, #1d2029);
   --stage-shadow: rgba(0, 0, 0, 0.6);
+
+  /* 김 사장님 수첩 (종이) */
+  --notebook-paper: #f4ecd8;
+  --notebook-ink: #3b3226;
+
+  /* 하루 결산 흐름도 */
+  --flow-bg: #0d1017;
+  --flow-line: rgba(255, 255, 255, 0.18);
+  --flow-node: rgba(255, 255, 255, 0.08);
+  --flow-locked: rgba(255, 255, 255, 0.35);
   --stage-placeholder: linear-gradient(160deg, #2a2f3a, #111318);
   --app-icon-fg: #ffffff;
 }

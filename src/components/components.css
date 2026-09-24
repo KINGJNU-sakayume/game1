@@ -35,3 +35,61 @@
   word-break: break-all;
   text-align: center;
 }
+
+/* ───────── 사진 보기 ───────── */
+
+.photo-viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--viewer-bg);
+  animation: fade-in 160ms ease-out both;
+}
+
+.photo-viewer__image {
+  max-height: 100%;
+  width: auto;
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.story-image--placeholder.photo-viewer__image {
+  width: 70%;
+}
+
+.photo-viewer__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  color: var(--avatar-text);
+}
+
+.photo-viewer__save {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 24px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--touch-min);
+  padding: 0 20px;
+  border-radius: 22px;
+  background: var(--choice-bg);
+  color: var(--choice-text);
+  font-size: 15px;
+  font-weight: 600;
+  transform: translateX(-50%);
+}
+
+.photo-viewer__save:disabled {
+  opacity: 0.75;
+  cursor: default;
+}

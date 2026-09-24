@@ -5,6 +5,7 @@ import storyData from '../../story/main.ink'
 import {
   DEFAULT_READ_DELAY,
   HEROINES,
+  PEOPLE,
   READ_DELAY,
   ROOMS,
   affectionStage,
@@ -13,9 +14,9 @@ import {
   isSenderId,
 } from '../story/cast'
 import type { HeroineId, PersonId, RoomId, SenderId } from '../story/cast'
-import { loadSettings } from '../state/storage'
-import { hasUnreadMine, markRead, pushMessage, setStage, store, syncMessageIds } from './store'
-import type { CallRecord, ChoiceOption, PendingChoice, Stats } from './store'
+import { load, loadSettings, save } from '../state/storage'
+import { EMPTY_JOURNAL, hasUnreadMine, markRead, pushMessage, savePhoto, setStage, store, syncMessageIds, updateJournal } from './store'
+import type { CallRecord, ChoiceOption, Note, PendingChoice, Stats } from './store'
 import { loadResume, rewindTo, saveDay, saveResume } from './save'
 import type { Snapshot } from './save'
 
@@ -52,6 +53,10 @@ let currentRoom: RoomId = 'dangol'
 let lastChosen: string | null = null
 let pendingResolve: ((option: ChoiceOption) => void) | null = null
 let pendingKind: PendingChoice['kind'] = 'reply'
+/** 흐름도에 남길, 지금 떠 있는 선택지의 장소 */
+let pendingContext = ''
+let pendingOptions: ChoiceOption[] = []
+let summaryResolve: (() => void) | null = null
 let cleanupChoice: (() => void) | null = null
 /** 대면·통화 대사에서 탭을 기다리는 중 */
 let advanceResolve: (() => void) | null = null
@@ -95,6 +100,7 @@ function snapshot(): Snapshot {
   return {
     stage: s.stage && !s.stage.ending ? s.stage : null,
     calls: s.calls,
+    journal: s.journal,
     version: 1,
     day: s.clock.day,
     ink: story!.state.ToJson(),
@@ -200,6 +206,60 @@ async function handleStageTags(tags: Tags, gen: number) {
   }
 }
 
+/** "a, b, c" → ['a', 'b', 'c'] (ink 태그 안에는 | 를 쓸 수 없어 쉼표로 나눈다) */
+function splitArgs(value: string): string[] {
+  return value.split(',').map((part) => part.trim())
+}
+
+function appendNote(kind: Note['kind'], title: string, text: string) {
+  const { day, time } = store.get().clock
+  updateJournal((j) => {
+    const i = j.notes.findIndex((n) => n.kind === kind && n.title === title)
+    if (i < 0) return { notes: [...j.notes, { kind, title, body: [text], day, time }] }
+    const notes = [...j.notes]
+    notes[i] = { ...notes[i], body: [...notes[i].body, text] }
+    return { notes }
+  })
+}
+
+/** 사진첩·캘린더·메모 태그. 이 줄이 메모로 쓰였으면 true (메신저·무대에 나오지 않음) */
+function handleJournalTags(text: string, tags: Tags): boolean {
+  if (tags.gallery) savePhoto(tags.gallery, null)
+  if (tags.plan !== undefined) {
+    const [id, dayText, time, ...rest] = splitArgs(tags.plan)
+    const day = Number.parseInt(dayText, 10)
+    if (id && day > 0 && /^\d{1,2}:\d{2}$/.test(time ?? '')) {
+      const plan = { id, day, time: time.padStart(5, '0'), title: rest.join(', ') || id }
+      updateJournal((j) => ({ plans: [...j.plans.filter((p) => p.id !== id), plan] }))
+    } else warn(`잘못된 plan: ${tags.plan} (형식: id, 날짜, HH:MM, 제목)`)
+  }
+  if (tags.unplan) updateJournal((j) => ({ plans: j.plans.filter((p) => p.id !== tags.unplan) }))
+  if (tags.todo !== undefined) {
+    const [id, ...rest] = splitArgs(tags.todo)
+    const todoText = rest.join(', ') || text
+    if (id && todoText) updateJournal((j) => ({ todos: [...j.todos.filter((t) => t.id !== id), { id, text: todoText, done: false }] }))
+    else warn(`잘못된 todo: ${tags.todo} (형식: id, 내용)`)
+  }
+  if (tags.done) updateJournal((j) => ({ todos: j.todos.map((t) => (t.id === tags.done ? { ...t, done: true } : t)) }))
+  if (text && tags.note !== undefined) {
+    appendNote('note', tags.note || '메모', text)
+    return true
+  }
+  if (text && tags.page !== undefined) {
+    appendNote('page', tags.page || '수첩', text)
+    return true
+  }
+  return false
+}
+
+/** 하루 결산 화면을 띄우고 닫을 때까지 기다린다 */
+function showSummary(gen: number): Promise<void> {
+  store.set({ summary: { day: store.get().clock.day }, banner: null })
+  return new Promise((resolve, reject) => {
+    summaryResolve = () => (gen === generation ? resolve() : reject(new Cancelled()))
+  })
+}
+
 /** 대면·통화 중 대사 한 줄: 탭하면 넘어간다 */
 async function stageLine(text: string, tags: Tags, gen: number) {
   const stage = store.get().stage!
@@ -231,6 +291,8 @@ function resolveSender(tag: string | undefined, room: RoomId): SenderId {
 
 /** 한 줄을 처리한다. 날짜가 바뀌었으면 true */
 async function handleLine(text: string, tags: Tags, gen: number): Promise<boolean> {
+  // 하루 결산은 같은 줄의 # day: 보다 먼저 (태그만 있는 줄은 다음 날 첫 줄에 붙기 때문)
+  if (tags.dayend !== undefined) await showSummary(gen)
   let newDay = false
   if (tags.day !== undefined) {
     const day = Number.parseInt(tags.day, 10)
@@ -250,8 +312,9 @@ async function handleLine(text: string, tags: Tags, gen: number): Promise<boolea
   }
   if (tags.wait !== undefined) await sleep(Number.parseFloat(tags.wait) || 0, gen)
   await handleStageTags(tags, gen)
+  const consumed = handleJournalTags(text, tags)
 
-  if (!text) return newDay
+  if (!text || consumed) return newDay
   if (lastChosen !== null && text === lastChosen && tags.from === undefined) {
     lastChosen = null
     return newDay
@@ -308,6 +371,7 @@ function askChoice(): Promise<ChoiceOption> {
       openRoom,
       answer: t.answer !== undefined,
       decline: t.decline !== undefined,
+      keep: t.keep !== undefined,
     }
   })
   const stage = store.get().stage
@@ -320,6 +384,18 @@ function askChoice(): Promise<ChoiceOption> {
           ? 'open'
           : 'reply'
   pendingKind = kind
+  pendingOptions = options
+  const who = stage?.call ? PEOPLE[stage.call.who].name : ''
+  pendingContext =
+    kind === 'reply'
+      ? ROOMS[currentRoom].name
+      : kind === 'open'
+        ? '먼저 연 대화방'
+        : kind === 'call'
+          ? `${who} 전화`
+          : stage?.kind === 'call'
+            ? `${who} 통화`
+            : '대면'
   // 선택지 앞은 다시 불러와도 똑같이 이어지는 지점이므로 여기서 이어하기 저장
   saveResume(snapshot(), store.get().messages)
 
@@ -365,6 +441,7 @@ async function sendChoice(option: ChoiceOption, room: RoomId, gen: number) {
       await typeInto(room, option.draft, gen)
       await sleep(0.8, gen)
       await eraseFrom(room, option.draft, gen)
+      if (option.keep) appendNote('unsent', ROOMS[room].name, option.draft)
       await sleep(0.4, gen)
     }
     await typeInto(room, text, gen)
@@ -389,6 +466,17 @@ async function stageChoice(option: ChoiceOption, gen: number) {
   }
 }
 
+/** 흐름도용 선택 기록 + 지금까지 한 번이라도 고른 선택 (날짜 선택으로 되돌려도 남는다) */
+function recordChoice(option: ChoiceOption, options: ChoiceOption[]) {
+  const { day, time } = store.get().clock
+  const labels = options.map((o) => (o.openRoom ? ROOMS[o.openRoom].name : o.label))
+  const chosen = options.indexOf(option)
+  updateJournal((j) => ({ history: [...j.history, { day, time, context: pendingContext, options: labels, chosen }] }))
+  const key = `${day}|${pendingContext}|${labels[chosen]}`
+  const seen = load<string[]>('seen', [])
+  if (!seen.includes(key)) save('seen', [...seen, key])
+}
+
 async function run(gen: number) {
   try {
     while (gen === generation && story) {
@@ -396,11 +484,13 @@ async function run(gen: number) {
         const text = (story.Continue() ?? '').trim()
         syncStats()
         const newDay = await handleLine(text, parseTags(story.currentTags), gen)
-        if (newDay && gen === generation) saveDay(snapshot(), store.get().messages)
+        // 줄이 끝난 지점은 다시 불러와도 똑같이 이어지므로 매 줄 이어하기 저장
+        if (gen === generation) (newDay ? saveDay : saveResume)(snapshot(), store.get().messages)
       } else if (story.currentChoices.length > 0) {
         const room = currentRoom
         const option = await askChoice()
         if (gen !== generation) return
+        recordChoice(option, pendingOptions)
         if (pendingKind === 'stage' || pendingKind === 'call') await stageChoice(option, gen)
         else await sendChoice(option, room, gen)
         story.ChooseChoiceIndex(option.index)
@@ -420,6 +510,7 @@ export const director = {
   start(playerName: string) {
     if (story) return
     story = new Story(storyData)
+    story.BindExternalFunction('saved', (name: string) => store.get().journal.photos.some((p) => p.name === name), true)
     const saved = loadResume()
     if (saved) {
       try {
@@ -427,6 +518,7 @@ export const director = {
         currentRoom = saved.snapshot.room
         syncMessageIds(saved.messages)
         store.set({
+          journal: { ...EMPTY_JOURNAL, ...saved.snapshot.journal },
           messages: saved.messages,
           clock: saved.snapshot.clock,
           unread: saved.snapshot.unread,
@@ -469,6 +561,14 @@ export const director = {
     resolve?.()
   },
 
+  /** 하루 결산 화면을 닫았을 때 */
+  closeSummary() {
+    store.set({ summary: null })
+    const resolve = summaryResolve
+    summaryResolve = null
+    resolve?.()
+  },
+
   /** 추천 답장을 눌렀을 때 */
   choose(index: number) {
     const choice = store.get().choice
@@ -490,6 +590,7 @@ export const director = {
     lastChosen = null
     pendingResolve = null
     advanceResolve = null
+    summaryResolve = null
     cleanupChoice?.()
     cleanupChoice = null
     store.reset()

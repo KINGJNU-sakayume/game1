@@ -18,3 +18,8 @@ VAR skill = 0
 // 수리 실력 +1 (최대 3)
 === function study() ===
 ~ skill = MIN(skill + 1, 3)
+
+// 받은 사진을 사진첩에 저장했는지 (엔진이 대답한다).  예: {saved("ian_selfie_desk_01"): 저장했네요?}
+EXTERNAL saved(photo)
+=== function saved(photo) ===
+~ return false
