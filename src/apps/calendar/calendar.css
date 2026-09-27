@@ -107,3 +107,69 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+.calendar__date.has-event:not(.is-today) {
+  color: var(--app-calendar);
+}
+
+.calendar__weather {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.calendar__events {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.calendar__event {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--app-calendar);
+  color: var(--app-icon-fg);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.calendar__plan {
+  align-items: center;
+}
+
+.calendar__plan-title {
+  flex: 1;
+}
+
+.calendar__plan.is-cancelled {
+  opacity: 0.55;
+  border-left-color: var(--color-text-muted);
+}
+
+.calendar__plan.is-cancelled .calendar__plan-title,
+.calendar__plan.is-cancelled .calendar__plan-time {
+  text-decoration: line-through;
+}
+
+.calendar__plan.is-clash {
+  box-shadow: 0 0 0 2px var(--app-calendar);
+}
+
+.calendar__tag {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.calendar__tag--clash {
+  background: var(--app-calendar);
+  color: var(--app-icon-fg);
+}

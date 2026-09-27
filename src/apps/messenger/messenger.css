@@ -20,6 +20,30 @@
   background: var(--color-surface-muted);
 }
 
+/* 이야기가 이 방에서 답장(또는 먼저 열기)을 기다린다. 안 읽은 배지가 있어도 보이게 줄 전체를 표시 */
+.chat-row.is-waiting {
+  background: rgba(242, 104, 92, 0.08);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.chat-list__hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 16px 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(242, 104, 92, 0.1);
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.chat-list__hint .chat-row__waiting {
+  flex: none;
+}
+
 .chat-row__main {
   flex: 1;
   min-width: 0;
@@ -418,4 +442,30 @@
 .msg__avatar-button {
   padding: 4px;
   margin: -4px;
+}
+
+/* 사진 보내기 (# attach:) */
+.replies__item--photo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.replies__thumb {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.replies__thumb .story-image {
+  height: 100%;
+  aspect-ratio: auto;
+  font-size: 0;
+}
+
+.replies__thumb .story-image--placeholder svg {
+  width: 18px;
+  height: 18px;
 }

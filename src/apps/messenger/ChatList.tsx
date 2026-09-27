@@ -25,37 +25,45 @@ export default function ChatList({ onOpen }: Props) {
   }
 
   return (
-    <ul className="chat-list">
-      {rows.map((last) => {
-        const room = ROOMS[last.room]
-        const count = unread[last.room] ?? 0
-        const waiting =
-          choice &&
-          (choice.kind === 'reply' ? choice.room === last.room : choice.options.some((o) => o.openRoom === last.room))
-        return (
-          <li key={last.room}>
-            <button type="button" className="chat-row" onClick={() => onOpen(last.room)}>
-              {room.group ? <GroupAvatar room={last.room} /> : <Avatar id={room.members[0]} size={50} />}
-              <span className="chat-row__main">
-                <span className="chat-row__name">
-                  {room.name}
-                  {room.group && <span className="chat-row__count">{room.members.length + 1}</span>}
+    <>
+      {choice?.kind === 'open' && (
+        <p className="chat-list__hint" role="status">
+          <span className="chat-row__waiting" aria-hidden />
+          누구의 메시지를 먼저 볼까요? 먼저 연 대화방이 선택이 됩니다.
+        </p>
+      )}
+      <ul className="chat-list">
+        {rows.map((last) => {
+          const room = ROOMS[last.room]
+          const count = unread[last.room] ?? 0
+          const waiting =
+            choice &&
+            (choice.kind === 'reply' ? choice.room === last.room : choice.options.some((o) => o.openRoom === last.room))
+          return (
+            <li key={last.room}>
+              <button type="button" className={`chat-row${waiting ? ' is-waiting' : ''}`} onClick={() => onOpen(last.room)}>
+                {room.group ? <GroupAvatar room={last.room} /> : <Avatar id={room.members[0]} size={50} />}
+                <span className="chat-row__main">
+                  <span className="chat-row__name">
+                    {room.name}
+                    {room.group && <span className="chat-row__count">{room.members.length + 1}</span>}
+                  </span>
+                  <span className="chat-row__preview">{previewText(last)}</span>
                 </span>
-                <span className="chat-row__preview">{previewText(last)}</span>
-              </span>
-              <span className="chat-row__meta">
-                <span className="chat-row__time">{last.time}</span>
-                {count > 0 ? (
-                  <span className="badge badge--inline">{count}</span>
-                ) : waiting ? (
-                  <span className="chat-row__waiting" aria-label="답장 대기" />
-                ) : null}
-              </span>
-            </button>
-          </li>
-        )
-      })}
-    </ul>
+                <span className="chat-row__meta">
+                  <span className="chat-row__time">{last.time}</span>
+                  {count > 0 ? (
+                    <span className="badge badge--inline">{count}</span>
+                  ) : waiting ? (
+                    <span className="chat-row__waiting" aria-label="답장 대기" />
+                  ) : null}
+                </span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </>
   )
 }
 

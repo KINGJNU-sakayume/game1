@@ -3,9 +3,11 @@ import { Mic, Phone, PhoneOff, Video, Volume2 } from 'lucide-react'
 import Avatar from '../components/Avatar'
 import StoryImage from '../components/StoryImage'
 import { director } from '../engine/director'
-import { useGame } from '../engine/store'
+import { callerName, useGame } from '../engine/store'
 import type { CallInfo, ChoiceOption, StageLine } from '../engine/store'
 import { PEOPLE } from '../story/cast'
+import { VIDEOS, isVideoId } from '../story/videos'
+import { TubeThumb } from '../apps/tube'
 import { loadProfile, loadSettings } from '../state/storage'
 import './stage.css'
 
@@ -49,10 +51,29 @@ function useTypewriter(line: StageLine | null) {
   }
 }
 
-function speakerName(speaker: StageLine['speaker']) {
+function speakerName(line: StageLine | null) {
+  if (!line) return null
+  if (line.label) return line.label
+  const speaker = line.speaker
   if (!speaker || speaker === 'system') return null
   if (speaker === 'me') return loadProfile()?.name ?? '나'
   return PEOPLE[speaker].name
+}
+
+/** 영상 재생 막대: 실제 길이가 아니라 대사가 흐르는 동안 천천히 찬다 */
+function useVideoProgress(video: string | null | undefined) {
+  const [state, setState] = useState<{ video: string | null; started: number; now: number }>(() => ({
+    video: video ?? null,
+    started: Date.now(),
+    now: Date.now(),
+  }))
+  if ((video ?? null) !== state.video) setState({ video: video ?? null, started: Date.now(), now: Date.now() })
+  useEffect(() => {
+    if (!video) return
+    const timer = window.setInterval(() => setState((s) => ({ ...s, now: Date.now() })), 500)
+    return () => window.clearInterval(timer)
+  }, [video])
+  return Math.min(0.96, (state.now - state.started) / 45000)
 }
 
 function Choices({ options }: { options: ChoiceOption[] }) {
@@ -94,12 +115,13 @@ export default function Stage() {
   const line = stage?.line ?? null
   const typer = useTypewriter(line)
   const timer = useCallTimer(stage?.call ?? null)
+  const progress = useVideoProgress(stage?.kind === 'video' ? stage.video : null)
 
   if (!stage) return null
   const call = stage.call
   const stageChoices = choice?.kind === 'stage' && typer.done ? choice.options : null
   const callChoices = choice?.kind === 'call' ? choice.options : null
-  const name = speakerName(line?.speaker ?? null)
+  const name = speakerName(line)
 
   function onTap() {
     if (!line || stageChoices) return
@@ -107,7 +129,12 @@ export default function Stage() {
     else director.advance()
   }
 
-  const classes = ['stage', `stage--${stage.kind}`, call?.video ? 'stage--video' : '', stage.ending ? 'is-ending' : '']
+  const classes = [
+    'stage',
+    stage.kind === 'video' ? 'stage--tube' : `stage--${stage.kind}`,
+    call?.video ? 'stage--video' : '',
+    stage.ending ? 'is-ending' : '',
+  ]
 
   // 전화 수신 화면
   if (call?.state === 'ringing') {
@@ -116,9 +143,12 @@ export default function Stage() {
     return (
       <div className={[...classes, 'stage--ringing'].join(' ')} role="dialog" aria-label="전화 수신">
         <div className="call-head">
-          <Avatar id={call.who} size={96} />
-          <p className="call-head__name">{PEOPLE[call.who].name}</p>
-          <p className="call-head__sub">{call.video ? '영상통화' : '음성통화'}</p>
+          <Avatar id={call.unknown ? 'system' : call.who} size={96} />
+          <p className="call-head__name">{callerName(call.who, call.unknown)}</p>
+          <p className="call-head__sub">
+            {call.unknown ? '저장되지 않은 번호 · ' : ''}
+            {call.video ? '영상통화' : '음성통화'}
+          </p>
         </div>
         <div className="call-answer">
           {decline && (
@@ -142,6 +172,57 @@ export default function Stage() {
     )
   }
 
+  const dialogue = line && (
+    <div className={`dialogue${name ? '' : ' dialogue--narration'}${call || stage.kind === 'video' ? ' dialogue--subtitle' : ''}`}>
+      {name && <p className="dialogue__name">{name}</p>}
+      <p className="dialogue__text">
+        {typer.text}
+        {typer.done && !stageChoices && <span className="dialogue__next" aria-hidden />}
+      </p>
+    </div>
+  )
+
+  // 튜브 영상 재생 화면
+  if (stage.kind === 'video') {
+    const id = stage.video && isVideoId(stage.video) ? stage.video : null
+    const info = id ? VIDEOS[id] : null
+    return (
+      <div className={classes.join(' ')} onClick={onTap} role="dialog" aria-label="영상 재생">
+        <div className="vplayer">
+          <div className="vplayer__frame">
+            {stage.image ? <StageImage name={stage.image} /> : id ? <TubeThumb id={id} /> : null}
+            <div className={`stage__black${stage.black ? ' is-on' : ''}`} />
+            <span className="vplayer__live">▶ 재생 중</span>
+            <div className="vplayer__bar" aria-hidden>
+              <span style={{ width: `${progress * 100}%` }} />
+            </div>
+          </div>
+          {info && (
+            <>
+              <div className="vplayer__info">
+                <p className="vplayer__title">{info.title}</p>
+                <p className="vplayer__sub">
+                  {info.views} · {info.ago}
+                </p>
+              </div>
+              <div className="vplayer__channel">
+                <span className="tube-card__avatar" aria-hidden>
+                  {info.channel.slice(0, 1)}
+                </span>
+                <span className="vplayer__channel-name">{info.channel}</span>
+                <span className="vplayer__length">{info.length}</span>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="stage__bottom">
+          {stageChoices && <Choices options={stageChoices} />}
+          {dialogue}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={classes.join(' ')} onClick={onTap} role="dialog" aria-label={stage.kind === 'call' ? '통화 중' : '장면'}>
       {/* 컷 이미지 (대면 장면, 영상통화) */}
@@ -157,8 +238,8 @@ export default function Stage() {
 
       {call && (
         <div className="call-top">
-          {!call.video && <Avatar id={call.who} size={112} />}
-          <p className="call-head__name">{PEOPLE[call.who].name}</p>
+          {!call.video && <Avatar id={call.unknown ? 'system' : call.who} size={112} />}
+          <p className="call-head__name">{callerName(call.who, call.unknown)}</p>
           <p className="call-head__sub">{timer}</p>
         </div>
       )}
@@ -166,15 +247,7 @@ export default function Stage() {
 
       <div className="stage__bottom">
         {stageChoices && <Choices options={stageChoices} />}
-        {line && (
-          <div className={`dialogue${name ? '' : ' dialogue--narration'}${call ? ' dialogue--subtitle' : ''}`}>
-            {name && <p className="dialogue__name">{name}</p>}
-            <p className="dialogue__text">
-              {typer.text}
-              {typer.done && !stageChoices && <span className="dialogue__next" aria-hidden />}
-            </p>
-          </div>
-        )}
+        {dialogue}
         {call && (
           <div className="call-controls" aria-hidden>
             <span className="call-controls__btn">

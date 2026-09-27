@@ -28,3 +28,33 @@
 .photos__item .story-image--placeholder {
   font-size: 10px;
 }
+
+.photos__albums {
+  margin: 4px 10px 4px;
+}
+
+.photos__empty {
+  padding: 0 32px;
+  text-align: center;
+}
+
+.photos__empty p {
+  margin: 0;
+}
+
+.photos__hint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.photos__hint--foot {
+  margin: 18px 12px 0;
+  text-align: center;
+}
+
+.photos__none {
+  margin: 32px 0;
+  color: var(--color-text-muted);
+  text-align: center;
+}

@@ -48,3 +48,271 @@
   font-size: 12px;
   color: var(--chat-meta);
 }
+
+/* ───────── 전화 앱 탭 ───────── */
+
+.phone-app {
+  min-height: 100%;
+  padding-bottom: 24px;
+}
+
+.phone-app__tabs {
+  margin: 12px 12px 6px;
+}
+
+.phone-app__tabs .segmented__item:disabled {
+  opacity: 0.4;
+}
+
+.phone-app__prompt {
+  padding: 8px 16px 4px;
+}
+
+.phone-app__empty {
+  height: auto;
+  margin-top: 40px;
+}
+
+.call-log__row .avatar:empty {
+  background: var(--color-surface-muted);
+}
+
+/* ───────── 연락처 ───────── */
+
+.contact-list {
+  margin: 4px 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 0;
+}
+
+.contact-row + .contact-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.contact-row.is-pick {
+  background: var(--color-surface);
+}
+
+.contact-row__main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 60px;
+  padding: 6px 0 6px 16px;
+  text-align: left;
+}
+
+.contact-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.contact-row__name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.contact-row__sub {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.contact-picks {
+  flex: none;
+  display: flex;
+  gap: 6px;
+}
+
+.contact-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 4px 6px;
+  border-radius: 12px;
+  background: var(--app-call);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 0 0 3px var(--choice-glow);
+}
+
+.contact-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px 32px;
+}
+
+.contact-detail__name {
+  margin: 6px 0 0;
+  font-size: 24px;
+}
+
+.contact-detail__status {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.contact-detail .contact-picks {
+  margin: 8px 0;
+}
+
+.contact-detail__card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 14px;
+  width: 100%;
+  margin: 10px 0 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--color-surface);
+  font-size: 15px;
+}
+
+.contact-detail__card dt {
+  color: var(--color-text-muted);
+}
+
+.contact-detail__card dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.contact-detail__memo {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--notebook-paper);
+  color: var(--notebook-ink);
+}
+
+.contact-detail__memo h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.contact-detail__memo p {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.contact-detail__none {
+  opacity: 0.6;
+}
+
+/* ───────── 음성사서함 ───────── */
+
+.voicemail-list {
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.voicemail + .voicemail {
+  border-top: 1px solid var(--color-border);
+}
+
+.voicemail__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 16px 8px 10px;
+  text-align: left;
+}
+
+.voicemail__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.voicemail.is-new .voicemail__dot {
+  background: var(--app-call);
+}
+
+.voicemail__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.voicemail__name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.voicemail__preview {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.voicemail__when {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 12px;
+  color: var(--chat-meta);
+}
+
+.voicemail__body {
+  margin: 0 16px 14px 28px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.voicemail__wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 0 0 10px;
+  color: var(--app-call);
+}
+
+.voicemail__wave span {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--app-call);
+  opacity: 0.7;
+}
+
+.voicemail__label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.voicemail__line {
+  margin: 0 0 6px;
+  font-size: 15px;
+  line-height: 1.5;
+}

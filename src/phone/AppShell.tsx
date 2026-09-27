@@ -7,18 +7,22 @@ import type { HeaderOverride } from './appHeader'
 
 interface Props {
   title: string
+  /** dark: 시스템 설정과 상관없이 어두운 앱 (튜브) */
+  tone?: 'default' | 'dark'
   /** 확대·축소 기준점 (폰 루트 기준 px) */
   origin: { x: number; y: number }
   closing: boolean
   onClose: () => void
   onClosed: () => void
+  /** 헤더 바로 아래 자리 (이야기가 다른 곳에서 기다릴 때의 알약) */
+  notice?: ReactNode
   children: ReactNode
 }
 
 const CLOSE_FALLBACK_MS = 400
 
 /** 모든 앱의 공통 껍데기: 헤더 + 스크롤 본문 + 홈 인디케이터 */
-export default function AppShell({ title, origin, closing, onClose, onClosed, children }: Props) {
+export default function AppShell({ title, tone = 'default', origin, closing, onClose, onClosed, notice, children }: Props) {
   const [header, setHeader] = useState<HeaderOverride | null>(null)
 
   // animationend가 오지 않는 경우(탭 전환 등)에도 반드시 닫히게 한다
@@ -34,7 +38,7 @@ export default function AppShell({ title, origin, closing, onClose, onClosed, ch
 
   return (
     <div
-      className={`app-shell ${closing ? 'is-closing' : 'is-opening'}`}
+      className={`app-shell ${closing ? 'is-closing' : 'is-opening'}${tone === 'dark' ? ' app-shell--dark' : ''}`}
       style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}
       onAnimationEnd={handleAnimationEnd}
       role="dialog"
@@ -54,6 +58,7 @@ export default function AppShell({ title, origin, closing, onClose, onClosed, ch
           {header?.subtitle && <p className="app-header__subtitle">{header.subtitle}</p>}
         </div>
       </header>
+      {notice}
       <main className="app-body">
         <AppHeaderContext.Provider value={setHeader}>{children}</AppHeaderContext.Provider>
       </main>

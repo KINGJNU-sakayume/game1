@@ -109,7 +109,17 @@ export default function ChatRoom({ room, onBack }: Props) {
         <div className="replies" role="group" aria-label="추천 답장">
           <p className="replies__title">추천 답장</p>
           {replies.map((o) => (
-            <button key={o.index} type="button" className="replies__item" onClick={() => director.choose(o.index)}>
+            <button
+              key={o.index}
+              type="button"
+              className={`replies__item${o.attach ? ' replies__item--photo' : ''}`}
+              onClick={() => director.choose(o.index)}
+            >
+              {o.attach && (
+                <span className="replies__thumb" aria-hidden>
+                  <StoryImage name={o.attach} alt="" />
+                </span>
+              )}
               {o.label}
             </button>
           ))}

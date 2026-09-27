@@ -1,13 +1,15 @@
 // D1 — 3월 9일 월요일
-// 새 번호 개통 첫날. 단골방 의뢰 폭탄, 윤서하 첫 만남, 단골방 합류.
+// 새 번호 개통 첫날. 단골방 의뢰 폭탄, 박 할머니의 전화, 윤서하 첫 만남, 첫 스냅·첫 튜브.
 // 문법: docs/05_스크립트_문법.md
 
 // ── D1에서 생기는 플래그 ──
 VAR f_seoha_key = false       // 서하에게 솔직했다 (D1 또는 D4). 서하 루트 핵심 플래그
 VAR f_d1_pretended = false    // 아침에 사장님인 척 답했다
-VAR f_d1_lied = false         // 카페에서 "사장님 조카"라고 거짓말했다 → D3 다온 대면에서 들통
+VAR f_d1_lied = false         // 카페에서 "사장님 조카"라고 거짓말했다 → D2 다온 메시지에서 들통
 VAR f_d1_bluffed = false      // 수리에서 아는 척했다
 VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 다시 초대됐다
+VAR f_d1_halmeoni = false     // 박 할머니 전화를 받아 사정을 말했다
+VAR f_d1_liked = false        // 오후세시 게시물에 반응했다
 
 
 // ════════════════════════════════
@@ -15,6 +17,19 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 // ════════════════════════════════
 === d01_morning ===
 # day: 1
+# time: 07:40
+# note: 3월 9일
+사흘 전에 폰 액정이 박살 났다. 새 폰을 사는 김에 번호도 바꿨다.
+# note: 3월 9일
+회사 사람들 번호도, 회사 단톡방도 전부 두고 왔다. 2주쯤은 아무한테도 연락 안 받고 조용히 쉬고 싶었다.
+# town: t_number, 동네생활, 망원토박이
+만물수선 김 사장님 연락 되시는 분 계세요?
+# town: t_number
+라디오 맡겨 놨는데 전화가 안 돼요. 번호가 없어진 건 아니겠죠?
+# townreply: t_number, 떡집 단골
+은퇴하셨대요. 제주 따님 댁으로 가셨다던데
+# townreply: t_number, 망원 산책러
+헐 간판은 아직 그대로던데… 30년 하신 가게잖아요
 # time: 07:52
 # room: dangol
 # from: choi
@@ -42,12 +57,53 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
     사장님 번호 맞는데
     # from: halmeoni # big
     사장님 사랑해요
-    -> d01_seoha_msg
+    -> d01_halmeoni_call
 * [읽고 넘기기 # act]
     # from: choi # wait: 2
     읽었네 ㅋㅋ 사장님 읽씹 하시네
     # from: halmeoni # big
     기다릴게요
+    -> d01_halmeoni_call
+
+
+// ── 모르는 번호의 전화 ──
+=== d01_halmeoni_call ===
+# time: 08:06 # wait: 1.5
+# call: halmeoni # unknown
+* [받기 # answer]
+    사장님! 나야, 떡집.
+    단톡방에 글씨 썼는데 답이 없어서 전화했지. 떡솥 뚜껑이 또 안 닫혀요.
+    * * [저, 사장님이 아니에요 # say: 저… 사장님이 아니라, 이 번호를 새로 받은 사람이에요.]
+        ~ f_d1_halmeoni = true
+        …응?
+        아이고. 어쩐지 목소리가 젊더라.
+        그럼 사장님은 어디 가셨대. 총각은 알아?
+        # from: me
+        저도 잘 몰라요. 죄송해요.
+        총각이 뭐가 죄송해. 번호가 죄지.
+        떡 먹으러 와요. 시장 들어오면 박씨네 떡집. 모르면 아무나 붙잡고 물어봐요, 다 알아.
+    * * [아 네 네 # say: 아, 네 네… 네.]
+        # narr
+        (아 네 네. 당황하면 나오는 버릇이 하필 지금 나왔다.)
+        호호, 사장님 목소리가 왜 이렇게 젊어졌어. 보약 드셨나 봐.
+        그럼 이따 와요. 떡 쪄 놓을게.
+        # narr
+        (전화가 끊겼다. 나는 방금 떡집 할머니와 약속을 했다. 사장님으로서.)
+    - - # call: end
+    # memo: halmeoni
+    망원시장 박씨네 떡집 할머니. 문자는 못 하시고 전화를 하신다. 단톡방에는 큰 글씨 스티커만.
+    -> d01_seoha_msg
+* [거절 # decline]
+    # voicemail: halmeoni # unknown
+    사장님, 나야 떡집. 문자를 할 줄 몰라서 전화했어요.
+    # voicemail: halmeoni # unknown
+    떡솥 뚜껑이 또 안 닫혀. 급한 건 아니고… 아니 급해. 떡은 매일 쪄야 하니까.
+    # voicemail: halmeoni # unknown
+    시간 나면 와요. 떡 줄게. 끊어요~
+    # note: 3월 9일
+    모르는 번호는 받지 않았다. 대신 음성 메시지가 남았다. 전화 앱에 파란 점이 하나.
+    # memo: halmeoni
+    망원시장 박씨네 떡집 할머니. 문자는 못 하시고 전화를 하신다. 단톡방에는 큰 글씨 스티커만.
     -> d01_seoha_msg
 
 
@@ -62,7 +118,7 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 
 = ask
 * [사실 저 사장님이 아니라서요 # draft: 네 물론이죠! 몇 시쯤 갈까요?]
-    ~ raise(aff_seoha, 5)
+    ~ raise(aff_seoha, 4)
     # wait: 4
     아…
     번호가 바뀐 거군요. 아침부터 죄송해요.
@@ -81,8 +137,8 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 그래도 혹시… 기계 좀 보실 줄 아세요?
 오늘 오후 장사를 이거 없이 하려니 막막해서요.
 * [잘은 모르지만 볼게요 # say: 솔직히 잘은 몰라요. 그래도 한번 볼게요.]
-    ~ raise(aff_seoha, 4)
-    솔직하게 말해줘서 오히려 좋네요 :)
+    ~ raise(aff_seoha, 3)
+    솔직하게 말해 줘서 오히려 좋네요 :)
 * [그 정도는 금방이죠 # draft: 저 기계는 하나도 몰라요]
     ~ f_d1_bluffed = true
     와, 다행이다.
@@ -94,11 +150,13 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 * [두 시 좋아요]
     네, 그럼 두 시에 봬요 :)
 * [지금 바로 갈 수도 있어요]
-    ~ raise(aff_seoha, 2)
+    ~ raise(aff_seoha, 1)
     아 지금은 손님이 좀 있어서요 ㅎㅎ
     두 시에 봬요 :)
 - # plan: seoha_machine, 1, 14:00, 에스프레소 머신 · 카페 오후세시
 # todo: machine, 에스프레소 머신 스팀 노즐 고치는 법 찾아보기
+# memo: seoha
+카페 오후세시 사장님. 말투가 차분하다. 이모티콘은 :) 하나만 쓴다.
 -> d01_day
 
 
@@ -113,26 +171,29 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 # from: choi
 사장님 냉장고는 오늘이요 ㅠ 고기 상함
 # note: 3월 9일
-유튜브에 "스팀 안 나옴"을 쳤다. 영상마다 기계 모양이 다 다르다.
+튜브에 "스팀 안 나옴"을 쳤다. 영상마다 기계 모양이 다 다르다.
 # time: 13:41
 # room: seoha
 오시는 길 설명드릴게요!
-망원시장 쪽 편의점에서 왼쪽으로 꺾으시면…
+망원시장 쪽 골목 편의점에서 왼쪽으로 꺾으시면…
 # typing: 3
 아 아니다 오른쪽이요. 오른쪽.
+# pin: cvs, cafe
 빨간 벽돌 건물 1층이에요 :)
 # note: 3월 9일
-카페 사장님은 길을 설명하다 방향을 한 번 바꿨다. 오른쪽이 맞기를.
+카페 사장님은 길을 설명하다 방향을 한 번 바꿨다. 지도 앱에 핀 두 개를 꽂았다. 편의점, 그리고 오른쪽.
+# memo: seoha
+길 설명하다가 왼쪽이 오른쪽이 됐다. 길치일지도.
 -> d01_scene
 
 
 // ── 대면: 카페 오후세시 ──
 === d01_scene ===
 # time: 14:02
-# scene: bg_mangwon_alley_day_01
+# scene: bg_mangwon_alley_day_01 # at: cvs
 편의점에서 오른쪽. 빨간 벽돌. 1층 유리문 위에 작게 "오후세시".
 (두 시 이 분. 첫 출근 날처럼 긴장된다.)
-# cut: bg_cafe_day_01
+# cut: bg_cafe_day_01 # at: cafe, 에스프레소 머신 수리
 문을 열자 커피 냄새가 먼저 온다. 손님은 창가에 한 명뿐이다.
 {f_d1_pretended: -> reveal | -> greet}
 
@@ -141,9 +202,9 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 어서 오세요, 사장님… 어?
 # from: seoha
 사장님 아니시죠?
-(김용수 사장님은 일흔두 살이라고 했다. 나는 스물여덟이다.)
+(생각해 보니 이 사람은 진짜 사장님 얼굴을 알고 있다.)
 * [번호만 물려받았어요 # say: 죄송해요. 사실 번호만 새로 받은 사람이에요.]
-    ~ raise(aff_seoha, 3)
+    ~ raise(aff_seoha, 2)
     # cut: seoha_face_pout_01 # from: seoha
     …아침에 말하지 그랬어요.
     # from: seoha
@@ -167,11 +228,11 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 # cut: seoha_scene_machine_01 # from: seoha
 이거예요. 스팀이 하나도 안 나와요.
 은색 기계 옆에 가늘고 긴 관이 붙어 있다. 끝이 하얗게 말라붙어 있다.
-(유튜브에서 본 거랑 모양이 다르다.)
+(튜브에서 본 거랑 모양이 다르다.)
 # from: seoha
 사장님은 늘 뭘 뚝딱 하시던데…
 * [아는 척 도전하기 # say: 이런 건 보통, 여기를 이렇게…]
-    ~ raise(aff_seoha, -5)
+    ~ raise(aff_seoha, -4)
     ~ f_d1_bluffed = true
     # fx: shake
     레버를 끝까지 젖히자 푸슉— 뜨거운 김이 엉뚱한 쪽으로 터진다.
@@ -179,7 +240,7 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
     괜찮아요?! 찬물! 찬물에 손 대요, 빨리.
     싱크대에 손을 대고 서 있다. 허세의 대가는 찬물이다.
     * * [사실 처음 봐요 # say: …죄송해요. 사실 이 기계 처음 봐요.]
-        ~ raise(aff_seoha, 6)
+        ~ raise(aff_seoha, 5)
         ~ f_seoha_key = true
         # fx: zoom # cut: seoha_face_smile_01 # from: seoha
         풉.
@@ -194,7 +255,7 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
         일단 설명서부터 찾아볼게요.
     - - -> fix
 * [솔직하게 모른다고 하기 # say: 솔직히 이 기계는 처음 봐요. 같이 설명서 찾아봐도 될까요?]
-    ~ raise(aff_seoha, 10)
+    ~ raise(aff_seoha, 8)
     ~ f_seoha_key = true
     # fx: zoom # cut: seoha_face_surprised_01 # from: seoha
     …그런 말 하는 사람 처음 봐요.
@@ -219,7 +280,7 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 # from: seoha
 얼마 드리면 돼요?
 * [바늘이 다 했어요 # say: 괜찮아요. 바늘이 다 했어요.]
-    ~ raise(aff_seoha, 3)
+    ~ raise(aff_seoha, 2)
     # from: seoha
     그럼 커피라도. 이건 거절하면 안 돼요.
 * [커피 한 잔이면 돼요 # say: 수리비는 커피 한 잔으로 할게요.]
@@ -249,6 +310,8 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 - # from: seoha
 그럼 기계가 또 말썽이면, 이 번호로 연락할게요.
 # scene: end
+# memo: seoha
+은팔찌를 왼쪽 손목에 한다. 기계 앞에서는 조금 겁먹은 얼굴이 된다.
 -> d01_evening
 
 
@@ -256,7 +319,7 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 // 저녁
 // ════════════════════════════════
 === d01_evening ===
-# time: 18:40
+# time: 18:40 # at: home
 # room: dangol
 # from: halmeoni # big
 사장님 아니래요
@@ -264,6 +327,14 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 ??? 할머니 무슨 소리야
 # from: halmeoni
 오후세시에 젊은 총각이 와서 기계 고치고 갔어요. 떡집에서 다 보여요
+{f_d1_halmeoni: -> heard | -> gossip}
+
+= heard
+# from: halmeoni
+아까 전화도 했어요. 번호를 새로 받았대
+-> gossip
+
+= gossip
 # from: choi
 ㅋㅋㅋㅋㅋ 그럼 누구야
 # from: seoha # time: 18:44
@@ -284,12 +355,14 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
     * * [냉장고는 못 고쳐요 # say: 냉장고는… 제가 못 고칠 것 같아요. 죄송해요.]
         # from: choi
         ㅋㅋㅋ 솔직하네 알았어요
+        # from: choi
+        근데 영상 보면 되지 않나? 요즘 애들은 다 영상 보고 하던데
     * * [한번 알아볼게요]
         # from: choi
         오 믿어요 총각
-        # todo: choi_fridge, 정육점 냉장고 문 고무
     - - # from: halmeoni # big
     환영해요
+    # todo: choi_fridge, 정육점 냉장고 문 고무 (최 사장)
 * [조용히 방 나가기 # act]
     ~ f_d1_left_dangol = true
     # from: system # wait: 2
@@ -302,6 +375,30 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
     나가지 마요
     # from: choi
     ㅋㅋㅋㅋㅋㅋㅋ
+    # todo: choi_fridge, 정육점 냉장고 문 고무 (최 사장)
+- # todo: tteok, 떡집 떡솥 뚜껑 (박 할머니)
+-> d01_snap
+
+
+// ── 첫 스냅: 오후세시의 공지 ──
+=== d01_snap ===
+# time: 21:05
+# post: seoha_p1 # from: seoha # photo: seoha_cg_latteart_01
+[안내] 오늘 오전엔 스팀이 고장 나 라떼를 못 만들었어요. 오후부터 다시 정상 영업합니다.
+# post: seoha_p1
+고쳐 주신 이웃분께 감사를 :)
+# comment: seoha_p1 # from: ian
+헐 언니 가게 무사해서 다행 ㅠㅠ 내일 라떼 먹으러 감
+# note: 3월 9일
+스냅에 오후세시 게시물이 떴다. 가게 계정의 말투는 메시지보다 한 칸 더 어른스럽다.
+# ask: 오후세시 게시물
+* [좋아요 누르기 # like: seoha_p1]
+    ~ raise(aff_seoha, 1)
+    ~ f_d1_liked = true
+* [댓글 달기 # comment: seoha_p1 # say: 스팀 부활 축하드려요!]
+    ~ raise(aff_seoha, 2)
+    ~ f_d1_liked = true
+* [그냥 넘기기]
 - -> d01_seoha_night
 
 
@@ -310,19 +407,22 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 # room: seoha
 오늘 마감하고 이제 폰 봐요.
 스팀 살아나서 오후 장사 무사히 했어요. 라떼만 스무 잔 넘게 나갔어요.
+{f_d1_liked: 스냅 반응도 봤어요. 가게 계정에 아는 사람이 생긴 건 처음이에요 :)}
 # photo: seoha_cg_latteart_01
 오늘 마지막 잔
 {f_seoha_key: 그리고 처음 봤다고 말해 준 거요. 사실 좀 웃겼어요. 좋은 쪽으로요 :)|사장님 대신 와 주셔서 감사해요 :)}
 {f_d1_lied: 삼촌께도 안부 전해 주세요.}
 * [오늘 즐거웠어요 # draft: 다음에 커피 마시러 가도 돼요? # keep]
-    ~ raise(aff_seoha, 3)
+    ~ raise(aff_seoha, 2)
     저도요 :)
 * [스팀 또 막히면 연락 주세요]
-    ~ raise(aff_seoha, 3)
+    ~ raise(aff_seoha, 2)
     네, 이 번호로 :)
 * [나중에 답하기 # act]
     ~ raise(aff_seoha, -2)
-- -> d01_night
+- # memo: seoha
+영업 중엔 답장이 늦고, 마감하고 나면 길게 쓴다.
+-> d01_night
 
 
 // ════════════════════════════════
@@ -332,15 +432,28 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 # time: 22:05
 # note: 3월 9일
 {f_d1_left_dangol: 단톡방에서 나가려다 할머니에게 붙잡혔다. 망원동은 번호 하나도 쉽게 놓아주지 않는다.|단톡방에 인사를 했다. 냉장고와 보일러와 떡솥이 줄을 서 있다.}
-* [유튜브로 수리 공부하기 # act]
-    ~ study()
-    # note: 공부 기록
-    냉장고 문 고무 교체 영상을 세 개 봤다. 최 사장님 냉장고가 자꾸 떠오른다.
+# ask: 오늘 밤 뭐 하지?
+* [튜브로 수리 공부하기 # act]
+    -> tube
 * [카페 사장님께 먼저 연락하기 # act]
     -> contact
 * [일찍 자기 # act]
     # note: 3월 9일
     알림을 끄고 누웠다. 꺼진 화면 위로 계속 무언가가 뜨는 것 같다.
+    -> close
+
+= tube
+# note: 3월 9일
+튜브를 열었다. 단톡방에 올라온 고장들을 검색했더니 추천 영상이 줄줄이 뜬다.
+# ask: 오늘 밤 볼 영상
+* [냉장고 문 고무 다시 붙이기 # watch: gasket]
+    -> video_gasket ->
+* [보일러에서 쇠 긁는 소리 # watch: boiler]
+    -> video_boiler ->
+* [형광등이 깜빡일 때 (알고리즘 추천) # watch: starter]
+    -> video_starter ->
+    # note: 3월 9일
+    단톡방에 형광등 얘기는 없었다. 알고리즘이 왜 이걸 틀어 줬는지는 모르겠다.
 - -> close
 
 = contact
@@ -348,7 +461,7 @@ VAR f_d1_left_dangol = false  // 단골방을 나갔다가 박 할머니에게 �
 # room: seoha
 # from: me
 스팀은 괜찮죠?
-~ raise(aff_seoha, 3)
+~ raise(aff_seoha, 2)
 # typing: 2.5
 네 ㅎㅎ 방금 청소까지 다 했어요.
 기계한테 안부 물어봐 준 사람은 처음이네요 :)

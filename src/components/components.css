@@ -15,6 +15,10 @@
   object-fit: cover;
 }
 
+.avatar__unknown {
+  color: var(--color-text-muted);
+}
+
 .story-image {
   display: block;
   width: 100%;
@@ -92,4 +96,92 @@
 .photo-viewer__save:disabled {
   opacity: 0.75;
   cursor: default;
+}
+
+.photo-viewer__caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--safe-top) + 14px);
+  margin: 0;
+  padding: 0 56px;
+  color: var(--stage-text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ───────── 앱 안의 선택 ───────── */
+
+.app-choice__prompt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.app-choice__extra {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.app-choice__extra-btn {
+  min-height: var(--touch-min);
+  padding: 0 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.app-choice__card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: 0 0 0 2px var(--choice-glow);
+  animation: choice-pulse 1.8s ease-in-out infinite;
+}
+
+.app-choice__card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-choice__card-btn {
+  min-height: var(--touch-min);
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--color-surface-muted);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.app-choice__card-btn.is-main {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  font-weight: 600;
+}
+
+@keyframes choice-pulse {
+  50% {
+    box-shadow: 0 0 0 5px var(--choice-glow);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-choice__card {
+    animation: none;
+  }
 }

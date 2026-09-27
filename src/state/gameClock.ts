@@ -2,8 +2,8 @@
 import { useGame } from '../engine/store'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
-/** D1 = 3월 9일 월요일 */
-const START = { month: 3, date: 9, weekday: 1 }
+/** D1 = 2026년 3월 9일 월요일. 엔딩 에필로그는 날짜를 건너뛰므로(D42 = 4월 19일) 실제 달력으로 계산한다 */
+const START = new Date(2026, 2, 9)
 
 export interface GameTime {
   dateLabel: string
@@ -11,9 +11,9 @@ export interface GameTime {
 }
 
 export function formatDay(day: number): string {
-  const date = START.date + day - 1
-  const weekday = WEEKDAYS[(START.weekday + day - 1) % 7]
-  return `${START.month}월 ${date}일 ${weekday}요일`
+  const d = new Date(START)
+  d.setDate(START.getDate() + day - 1)
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${WEEKDAYS[d.getDay()]}요일`
 }
 
 export function useGameTime(): GameTime {

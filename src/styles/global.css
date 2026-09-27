@@ -525,6 +525,18 @@ img {
   }
 }
 
+/* 어두운 앱 (튜브): 헤더와 본문 모두 어둡게 */
+.app-shell--dark {
+  --color-bg: var(--tube-bg);
+  --color-text: var(--tube-text);
+  --color-text-muted: var(--tube-muted);
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-accent: var(--tube-accent);
+  --color-indicator-on-app: rgba(255, 255, 255, 0.45);
+  --color-surface: var(--tube-surface);
+  --color-surface-muted: #2a2b2f;
+}
+
 .app-header {
   flex: none;
   display: grid;
@@ -668,6 +680,59 @@ img {
 .settings__list-meta {
   color: var(--color-text-muted);
   font-size: 14px;
+}
+
+.settings__info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 14px;
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 15px;
+}
+
+.settings__info dt {
+  color: var(--color-text-muted);
+}
+
+.settings__info dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings__endings {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings__ending {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: var(--touch-min);
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.settings__ending + .settings__ending {
+  border-top: 1px solid var(--color-border);
+}
+
+.settings__ending.is-locked {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.settings__ending .settings__list-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .segmented {
@@ -903,4 +968,175 @@ img {
   .menu-sheet {
     animation: none;
   }
+}
+
+/* ───────── 알림 배너: 앱 알림 ───────── */
+
+.banner__app {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: var(--app-icon-fg);
+}
+
+.banner__app-name {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* ───────── 앱 안의 선택 알림 (알약) ───────── */
+
+.activity-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.activity-pill--inline {
+  flex: none;
+  margin: 8px 12px 0;
+  min-height: 52px;
+  padding: 8px 12px 8px 8px;
+  border-radius: 26px;
+  background: var(--pill-bg);
+  color: var(--pill-text);
+  box-shadow: 0 6px 18px var(--banner-shadow);
+  animation: pill-in 320ms var(--ease-app) both;
+}
+
+/* 어두운 앱(튜브)에서는 테두리로 알약을 구분한다 */
+.app-shell--dark .activity-pill--inline {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.activity-pill--home {
+  width: calc(100% - 40px);
+  margin: 14px 20px 0;
+  min-height: 60px;
+  padding: 10px 14px 10px 10px;
+  border-radius: 20px;
+  background: var(--color-glass-strong);
+  color: var(--color-glass-text);
+  box-shadow: 0 0 0 2px var(--choice-glow);
+  animation: pill-glow 1.8s ease-in-out infinite;
+}
+
+/* 헤더 아래로 내려오며 본문을 부드럽게 민다 */
+@keyframes pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.96);
+    margin-bottom: -60px;
+  }
+}
+
+@keyframes pill-glow {
+  50% {
+    box-shadow: 0 0 0 5px var(--choice-glow);
+  }
+}
+
+.activity-pill__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--app-icon-fg);
+}
+
+.activity-pill--home .activity-pill__icon {
+  border-radius: 10px;
+}
+
+.activity-pill__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.activity-pill__app {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.activity-pill__prompt {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.activity-pill__go {
+  flex: none;
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activity-pill--inline,
+  .activity-pill--home {
+    animation: none;
+  }
+}
+
+/* ───────── 홈 화면: 날씨 · 독 ───────── */
+
+.clock-widget__weather {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-on-wallpaper-muted);
+}
+
+.home__spacer {
+  flex: 1;
+}
+
+.dock {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 0 12px 10px;
+  padding: 14px 10px;
+  border-radius: 30px;
+  background: var(--color-glass);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  list-style: none;
+}
+
+.dock .app-icon__label {
+  display: none;
+}
+
+.app-icon__dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-on-wallpaper);
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: pill-glow 1.8s ease-in-out infinite;
+}
+
+/* 흰 타일 앱(사진·캘린더)의 날짜 표시 */
+.app-icon__tile--light {
+  box-shadow: 0 2px 8px var(--color-text-shadow);
 }

@@ -118,3 +118,20 @@
   color: var(--notebook-ink);
   opacity: 0.6;
 }
+
+.notes__notebook-hint {
+  padding: 12px 14px;
+  background: var(--notebook-paper);
+  color: var(--notebook-ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.notes__unread {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}

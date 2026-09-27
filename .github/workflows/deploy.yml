@@ -1,14 +1,25 @@
 name: Deploy to GitHub Pages
 
+# 본 게임(main)과 열려 있는 PR의 미리보기를 한 사이트로 묶어 GitHub Pages에 올린다.
+#   본 게임       https://<계정>.github.io/game1/
+#   PR 미리보기   https://<계정>.github.io/game1/pr-preview/pr-<PR 번호>/
+# Pages는 올릴 때마다 사이트 전체가 바뀌므로, main에 푸시하거나 PR이 열리고·바뀌고·닫힐 때마다
+# main + 열린 PR 전부를 다시 빌드해서 올린다. 닫힌(머지 포함) PR의 미리보기는 다음 배포에서 빠진다.
+# 미리보기 빌드는 PREVIEW_PR=번호로 한다 (vite.config.ts: 경로, 서비스 워커 끔 / src/state/storage.ts: 저장 데이터 분리).
+
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
+  pull-requests: write # PR에 미리보기 주소 댓글
 
 concurrency:
   group: pages
@@ -16,26 +27,100 @@ concurrency:
 
 jobs:
   build:
+    # 포크에서 온 PR은 배포 권한이 없으므로 돌리지 않는다
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - name: main 가져오기
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
-      - run: npm run build
+
+      - name: 본 게임 빌드 (main)
+        run: |
+          npm ci
+          npm run build
+          mkdir -p _site
+          cp -r dist/. _site/
+
+      - name: 열린 PR 미리보기 빌드
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          prs=$(gh pr list --repo "$GITHUB_REPOSITORY" --base "$BASE_BRANCH" --state open --limit 20 \
+            --json number,isCrossRepository --jq '.[] | select(.isCrossRepository | not) | .number')
+          build_preview() {
+            local n=$1 dir="$RUNNER_TEMP/pr-$1"
+            git fetch --no-tags --depth=1 origin "pull/$n/head:refs/remotes/pr/$n" &&
+              git worktree add --detach "$dir" "refs/remotes/pr/$n" &&
+              (cd "$dir" && npm ci && PREVIEW_PR="$n" npm run build) &&
+              mkdir -p "_site/pr-preview/pr-$n" &&
+              cp -r "$dir/dist/." "_site/pr-preview/pr-$n/"
+          }
+          echo "### PR 미리보기" >> "$GITHUB_STEP_SUMMARY"
+          [ -z "$prs" ] && echo "열린 PR이 없습니다." >> "$GITHUB_STEP_SUMMARY"
+          for n in $prs; do
+            echo "::group::PR #$n"
+            if build_preview "$n"; then
+              echo "- PR #$n → \`pr-preview/pr-$n/\`" >> "$GITHUB_STEP_SUMMARY"
+            else
+              # 미리보기 하나가 깨져도 본 게임과 다른 미리보기는 그대로 올린다
+              echo "::warning::PR #$n 미리보기 빌드 실패"
+              echo "- ⚠ PR #$n 미리보기 빌드 실패" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            echo "::endgroup::"
+          done
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: _site
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      # PR에서 돌면 "View deployment"가 그 PR의 미리보기로 간다
+      url: ${{ steps.deployment.outputs.page_url }}${{ github.event_name == 'pull_request' && github.event.action != 'closed' && format('pr-preview/pr-{0}/', github.event.number) || '' }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  comment:
+    # PR에 미리보기 주소를 댓글로 남긴다 (한 PR에 댓글 하나를 계속 고쳐 쓴다)
+    if: github.event_name == 'pull_request'
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        with:
+          script: |
+            const marker = '<!-- pr-preview -->'
+            const pr = context.payload.pull_request
+            const url = `${process.env.PAGE_URL}pr-preview/pr-${pr.number}/`
+            const closed = context.payload.action === 'closed'
+            const body = closed
+              ? `${marker}\n📱 PR이 닫혀서 미리보기를 내렸습니다.`
+              : [
+                  marker,
+                  `📱 **미리보기**: ${url}`,
+                  '',
+                  `커밋 \`${pr.head.sha.slice(0, 7)}\` 기준 · 이 PR에 푸시할 때마다 다시 올라갑니다 (1~3분).`,
+                  '- 저장 데이터는 본 게임과 따로입니다.',
+                  '- 본 게임을 열어 본 적 있는 폰에서 옛 화면이 보이면 사파리 **개인정보 보호 탭**으로 여세요 (본 게임의 서비스 워커가 가로채는 경우).',
+                ].join('\n')
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: pr.number, per_page: 100 })
+            const old = comments.find((c) => c.user.type === 'Bot' && c.body.includes(marker))
+            if (old) await github.rest.issues.updateComment({ ...context.repo, comment_id: old.id, body })
+            else if (!closed) await github.rest.issues.createComment({ ...context.repo, issue_number: pr.number, body })

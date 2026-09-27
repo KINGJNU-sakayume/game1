@@ -1,10 +1,15 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { Lock } from 'lucide-react'
 import type { AppProps } from '../registry'
-import { loadSettings, saveSettings } from '../../state/storage'
+import { load, loadSettings, saveSettings } from '../../state/storage'
 import { listDays } from '../../engine/save'
+import { useGame } from '../../engine/store'
 import { formatDay } from '../../state/gameClock'
 import type { TextSpeed } from '../../state/storage'
+import { MY_NUMBER, PEOPLE } from '../../story/cast'
+import { ENDINGS } from '../../story/endings'
+import { ChoiceCard, useAppChoice } from '../../components/appChoice'
 
 const SPEEDS: { value: TextSpeed; label: string }[] = [
   { value: 'slow', label: '느림' },
@@ -15,6 +20,10 @@ const SPEEDS: { value: TextSpeed; label: string }[] = [
 type Confirm = { kind: 'reset' } | { kind: 'rewind'; day: number }
 
 export default function SettingsApp({ profile, onRename, onReset, onRewind }: AppProps) {
+  const choice = useAppChoice('settings')
+  const finale = useGame((s) => s.finale)
+  // 엔딩 카드가 뜨고 닫힐 때 다시 읽는다
+  const seenEndings = useMemo(() => load<string[]>('endings', []), [finale])
   const [settings, setSettings] = useState(loadSettings)
   const [name, setName] = useState(profile.name)
   const [renamed, setRenamed] = useState(false)
@@ -38,6 +47,22 @@ export default function SettingsApp({ profile, onRename, onReset, onRewind }: Ap
 
   return (
     <div className="settings">
+      {choice && <ChoiceCard choice={choice} app="settings" />}
+
+      <section className="settings__section">
+        <h2 className="settings__label">휴대폰 정보</h2>
+        <dl className="settings__card settings__info">
+          <dt>이름</dt>
+          <dd>{profile.name}</dd>
+          <dt>전화번호</dt>
+          <dd>{MY_NUMBER}</dd>
+          <dt>개통일</dt>
+          <dd>3월 9일</dd>
+          <dt>이 번호의 전 사용자</dt>
+          <dd>{PEOPLE.boss.name.replace(' 사장님', '')} (2월 해지)</dd>
+        </dl>
+      </section>
+
       <section className="settings__section">
         <h2 className="settings__label" id="speed-label">
           텍스트 속도
@@ -102,6 +127,25 @@ export default function SettingsApp({ profile, onRename, onReset, onRewind }: Ap
           </div>
         )}
         <p className="settings__note">고른 날짜의 시작부터 다시 합니다. 게임은 자동 저장됩니다.</p>
+      </section>
+
+      <section className="settings__section">
+        <h2 className="settings__label">
+          엔딩 기록 {new Set(seenEndings).size}/{ENDINGS.length}
+        </h2>
+        <ul className="settings__list settings__endings">
+          {ENDINGS.map((e) => {
+            const seen = seenEndings.includes(e.id)
+            return (
+              <li key={e.id} className={`settings__ending${seen ? '' : ' is-locked'}`}>
+                <span>{seen ? e.title : '???'}</span>
+                <span className="settings__list-meta">
+                  {!seen && <Lock size={13} aria-hidden />} {e.who ? `${PEOPLE[e.who].name} · ${e.kind}` : e.kind}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
       </section>
 
       <section className="settings__section">

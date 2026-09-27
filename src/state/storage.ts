@@ -1,6 +1,8 @@
 // localStorage 래퍼. 모든 키에 `jgbn_` 접두사를 붙이고, 접근 실패(사생활 보호 모드, 용량 초과 등)는 조용히 무시한다.
+// PR 미리보기(/game1/pr-preview/pr-N/)는 본 게임과 같은 주소를 쓰므로 `jgbn-prN_`로 따로 저장한다 (서로 지우지 않는다).
 
-const PREFIX = 'jgbn_'
+const preview = import.meta.env.BASE_URL.match(/\/pr-preview\/pr-(\d+)\/$/)
+const PREFIX = preview ? `jgbn-pr${preview[1]}_` : 'jgbn_'
 
 function getStore(): Storage | null {
   try {
@@ -35,7 +37,7 @@ export function remove(key: string): void {
   }
 }
 
-/** `jgbn_` 접두사가 붙은 키만 전부 삭제한다. */
+/** 이 게임(또는 이 미리보기)의 접두사가 붙은 키만 전부 삭제한다. */
 export function clearAll(): void {
   try {
     const store = getStore()
