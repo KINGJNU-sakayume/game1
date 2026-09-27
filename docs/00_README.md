@@ -68,7 +68,17 @@
 
 - 화면: Vite + React + TypeScript
 - 이야기: ink 스크립트 언어 + inkjs 런타임 (M2부터)
-- 배포: `main` 브랜치 push → GitHub Actions → GitHub Pages
+- 배포: `main` 브랜치 push → GitHub Actions → GitHub Pages (`https://kingjnu-sakayume.github.io/game1/`)
+- PR 미리보기: PR을 열면 **같은 배포 워크플로**가 그 PR을 `…/game1/pr-preview/pr-<번호>/`에 함께 올리고 PR에 주소를 댓글로 단다 (아래)
 - 앱화: PWA (홈 화면에 추가하면 주소창 없는 전체화면)
 - 저장: 브라우저 localStorage (자동 저장, 세이브 버전 2)
 - 대본 점검: `npm run playtest` (Node 22.6 이상. 무작위·히로인 집중 플레이 결과, 태그 경고, 지나가지 않은 knot)
+
+## PR 미리보기 — 머지하지 않고 확인하기
+
+1. PR을 연다 (base: `main`). `.github/workflows/deploy.yml`이 main과 열린 PR 전부를 한 사이트로 빌드해 GitHub Pages에 올린다.
+2. 1~3분 뒤 PR에 댓글로 주소가 달린다: `https://kingjnu-sakayume.github.io/game1/pr-preview/pr-<번호>/`. PR의 "View deployment" 버튼도 같은 곳으로 간다.
+3. PR에 푸시하면 다시 올라가고, PR을 닫거나 머지하면 미리보기는 내려간다(머지하면 본 게임이 바뀐다).
+
+- **처음 한 번 설정**: 저장소 Settings → Environments → `github-pages` → Deployment branches and tags를 **No restriction**으로 바꾼다. 기본값(main만)이면 PR에서 올리는 단계가 `…is not allowed to deploy to github-pages due to environment protection rules`로 거절된다. 포크에서 온 PR은 워크플로가 건너뛴다.
+- 미리보기는 서비스 워커를 쓰지 않고, 저장 데이터도 본 게임과 따로다(`jgbn-pr<번호>_`). 본 게임을 열어 본 폰에서 미리보기 주소에 본 게임 화면이 뜨면(예전 본 게임의 서비스 워커가 가로챈 것) 사파리 **개인정보 보호 탭**으로 연다.
