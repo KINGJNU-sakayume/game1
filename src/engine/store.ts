@@ -240,6 +240,8 @@ export interface Voicemail {
   time: string
   lines: string[]
   heard: boolean
+  /** 모르는 번호로 걸려 온 전화의 음성 메시지 (이름 대신 번호로 보인다) */
+  unknown?: boolean
 }
 
 /** 대본이 만드는 기록: 사진첩·캘린더·메모·튜브·지도·스냅·망원살이·연락처. 저장본에 함께 들어간다 */

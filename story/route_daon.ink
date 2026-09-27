@@ -684,13 +684,13 @@ VAR f_daon_confess = false    // D12 마음을 말했다
     못 고치면 못 고친다고 하는 사람이 제일 잘 고쳐. 삼십 년 해 보니까 그려.
     -> boss_call_close ->
 * [거절 # decline]
-    # voicemail: boss
+    # voicemail: boss # unknown
     …여보세요. 만물수선 번호 쓰는 사람인가. 김용수여. 이 번호 전 주인.
-    # voicemail: boss
+    # voicemail: boss # unknown
     바쁜가 보네. …우리 다온이 밥은 먹고 다니나. 걔가 나한테 화났을 겨. 말도 없이 왔으니까.
-    # voicemail: boss
+    # voicemail: boss # unknown
     간판은 다온이 주고. 아니면 자네가 써. 만물수선, 자네가 해도 되고.
-    # voicemail: boss
+    # voicemail: boss # unknown
     고치는 건 기술이 아니라 끈기여. 그 번호, 잘 부탁혀.
     # note: 3월 18일
     064. 제주. 음성사서함에 사장님 목소리가 남았다. 다온 씨 이름이 두 번 나온다.

@@ -94,11 +94,11 @@ VAR f_d1_liked = false        // 오후세시 게시물에 반응했다
     망원시장 박씨네 떡집 할머니. 문자는 못 하시고 전화를 하신다. 단톡방에는 큰 글씨 스티커만.
     -> d01_seoha_msg
 * [거절 # decline]
-    # voicemail: halmeoni
+    # voicemail: halmeoni # unknown
     사장님, 나야 떡집. 문자를 할 줄 몰라서 전화했어요.
-    # voicemail: halmeoni
+    # voicemail: halmeoni # unknown
     떡솥 뚜껑이 또 안 닫혀. 급한 건 아니고… 아니 급해. 떡은 매일 쪄야 하니까.
-    # voicemail: halmeoni
+    # voicemail: halmeoni # unknown
     시간 나면 와요. 떡 줄게. 끊어요~
     # note: 3월 9일
     모르는 번호는 받지 않았다. 대신 음성 메시지가 남았다. 전화 앱에 파란 점이 하나.

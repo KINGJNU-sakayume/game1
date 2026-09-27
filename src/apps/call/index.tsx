@@ -47,7 +47,7 @@ function useContacts(extra: PersonId[]): PersonId[] {
     }
     for (const m of messages) add(m.from)
     for (const c of calls) if (!c.unknown) add(c.who)
-    for (const v of voicemails) add(v.who)
+    for (const v of voicemails) if (!v.unknown) add(v.who)
     for (const id of Object.keys(memos)) add(id)
     for (const id of extra) add(id)
     return order
@@ -244,7 +244,7 @@ function VoicemailList({ voicemails }: { voicemails: Voicemail[] }) {
           <button type="button" className="voicemail__head" onClick={() => listen(v)} aria-expanded={open === v.id}>
             <span className="voicemail__dot" aria-hidden />
             <span className="voicemail__main">
-              <span className="voicemail__name">{PEOPLE[v.who].name}</span>
+              <span className="voicemail__name">{callerName(v.who, v.unknown)}</span>
               <span className="voicemail__preview">{v.lines[0]}</span>
             </span>
             <span className="voicemail__when">

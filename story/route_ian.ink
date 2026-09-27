@@ -576,11 +576,11 @@ VAR f_ian_confess = false     // D12 마음을 말했다
     그거 수첩에 끼워 뒀을 겨. 맨 뒤에. 한번 찾아봐.
     -> boss_call_close ->
 * [거절 # decline]
-    # voicemail: boss
+    # voicemail: boss # unknown
     …여보세요. 만물수선 번호 쓰는 사람인가. 김용수여. 이 번호 전 주인.
-    # voicemail: boss
+    # voicemail: boss # unknown
     바쁜가 보네. 하나만 전해 줘. 301호 아가씨가 나 그려 준 그림이 있어. 형광등 고쳐 준 다음 날 문에 붙여 놨더라고.
-    # voicemail: boss
+    # voicemail: boss # unknown
     그거 수첩 맨 뒤에 끼워 뒀어. 그 아가씨 보여 줘. 고치는 건 기술이 아니라 끈기여.
     # note: 3월 18일
     064로 시작하는 모르는 번호. 음성사서함에 긴 메시지가 남았다.

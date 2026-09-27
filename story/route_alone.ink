@@ -158,11 +158,11 @@ VAR f_alone_gave = false      // 번호를 다온(사장님 가족)에게 넘기
         근데 목소리가 좀 쓸쓸하네. 번호는 사람 붙어 있으라고 있는 겨.
     - - -> boss_call_close ->
 * [거절 # decline]
-    # voicemail: boss
+    # voicemail: boss # unknown
     …여보세요. 만물수선 번호 쓰는 사람인가. 김용수여. 이 번호 전 주인.
-    # voicemail: boss
+    # voicemail: boss # unknown
     단골들 챙겨 줘서 고맙네. 번호는 그냥 번호여. 근데 사람이 붙어 있어야 번호지.
-    # voicemail: boss
+    # voicemail: boss # unknown
     고치는 건 기술이 아니라 끈기여. 그 번호, 잘 부탁혀.
 - # note: 3월 18일
 사장님의 목소리를 들었다. 이 번호로 오는 전화는 전부, 원래 그 목소리를 찾던 것이었다.

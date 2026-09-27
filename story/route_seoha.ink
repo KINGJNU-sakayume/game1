@@ -751,18 +751,18 @@ VAR f_seoha_saved = false     // D13 재계약이 됐다
     -> boss_call_close ->
     -> after_call
 * [거절 # decline]
-    # voicemail: boss
+    # voicemail: boss # unknown
     …여보세요. 만물수선 번호 쓰는 사람인가. 김용수여. 이 번호 전 주인.
-    # voicemail: boss
+    # voicemail: boss # unknown
     바쁜가 보네. 오후세시 사장 소식 들었어. 그 건물 사모님, 나랑 삼십 년 알았어. 말은 세도 정이 있는 사람이여.
-    # voicemail: boss
+    # voicemail: boss # unknown
     서하 사장한테 겁먹지 말고 가서 사정을 말하라고 혀. 숫자만 말고, 그 가게가 뭔지를.
     { f_seoha_roaster:
-        # voicemail: boss
+        # voicemail: boss # unknown
         로스터 얻었다며. 히터 아니면 벨트여. 센서는 맨 마지막.
         ~ roaster_step = MIN(roaster_step + 1, 3)
     }
-    # voicemail: boss
+    # voicemail: boss # unknown
     고치는 건 기술이 아니라 끈기여. 그 번호, 잘 부탁혀.
     # note: 3월 18일
     모르는 번호, 064. 제주 지역번호다. 음성사서함에 긴 메시지가 남았다.

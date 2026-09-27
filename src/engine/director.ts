@@ -23,6 +23,7 @@ import type { AppId } from '../apps/ids'
 import { load, loadProfile, loadSettings, save } from '../state/storage'
 import {
   EMPTY_JOURNAL,
+  callerName,
   hasUnreadMine,
   markRead,
   notify,
@@ -392,7 +393,7 @@ function handlePlanTags(text: string, tags: Tags) {
         seen: store.get().viewingApp === 'call',
       }
       store.set((s) => ({ calls: [...s.calls, record] }))
-      const name = tags.unknown !== undefined ? (PEOPLE[tags.missed].number ?? '알 수 없는 번호') : PEOPLE[tags.missed].name
+      const name = callerName(tags.missed, tags.unknown !== undefined)
       notify('call', `${name} · ${record.video ? '영상통화' : '음성통화'}`, tags.unknown !== undefined ? null : tags.missed, '부재중 전화')
     } else warn(`알 수 없는 missed: ${tags.missed}`)
   }
@@ -431,9 +432,12 @@ function handleRecordLine(text: string, tags: Tags): boolean {
       lastVoicemail = last.id
     } else {
       const id = nextVoicemailId++
-      updateJournal((j) => ({ voicemails: [...j.voicemails, { id, who, day, time, lines: [text], heard: false }] }))
+      const unknown = tags.unknown !== undefined
+      updateJournal((j) => ({
+        voicemails: [...j.voicemails, { id, who, day, time, lines: [text], heard: false, ...(unknown ? { unknown } : {}) }],
+      }))
       lastVoicemail = id
-      notify('call', `${PEOPLE[who].name} · 새 음성 메시지`, who, '음성사서함')
+      notify('call', `${callerName(who, unknown)} · 새 음성 메시지`, unknown ? null : who, '음성사서함')
     }
     return true
   }

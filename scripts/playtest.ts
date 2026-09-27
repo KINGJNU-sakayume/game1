@@ -2,6 +2,7 @@
 //   node scripts/playtest.ts                 무작위 + 히로인 집중 플레이 (기본 300회씩)
 //   node scripts/playtest.ts --runs 2000     횟수
 //   node scripts/playtest.ts --trace seoha   서하 집중 플레이 한 번의 선택 흐름을 출력
+//   node scripts/playtest.ts --only seoha    한 묶음만 (random · all · seoha · ian · daon)
 // 보고: 엔딩·루트 분포, 태그 경고(중복 제거), 한 번도 지나가지 않은 knot·stitch, 막다른 길.
 // Node 22.6 이상 (TypeScript를 바로 실행). src/story의 데이터 파일을 그대로 읽는다.
 import { readFileSync } from 'node:fs'
@@ -22,6 +23,7 @@ const argValue = (name: string, fallback: string) => {
 }
 const RUNS = Number(argValue('--runs', '300'))
 const TRACE = argValue('--trace', '')
+const ONLY = argValue('--only', '')
 const MAX_STEPS = 20000
 
 // ───────── 컴파일 ─────────
@@ -298,6 +300,8 @@ interface RunResult {
   route: string | null
   vars: Record<string, number | boolean | string>
   atRoute: Record<string, number | boolean | string> | null
+  /** 엔딩 knot에 들어선 순간(= D13 판정 직후)의 변수 */
+  atJudge: Record<string, number | boolean | string> | null
   lines: number
   choices: number
   stuck: string | null
@@ -307,6 +311,32 @@ interface RunResult {
 const WATCH_VARS = [
   'aff_seoha', 'aff_ian', 'aff_daon', 'skill',
   'f_seoha_key', 'f_ian_key', 'f_daon_key',
+]
+
+/** 굿 엔딩 조건 (route_*.ink의 judge와 같게 유지한다). 놓친 이유를 세는 데만 쓴다 */
+type Vars = Record<string, number | boolean | string>
+const GOOD_CONDITIONS: Record<'seoha' | 'ian' | 'daon', [string, (v: Vars) => boolean][]> = {
+  seoha: [
+    ['호감 75', (v) => Number(v.aff_seoha) >= 75],
+    ['재계약 f_seoha_saved', (v) => v.f_seoha_saved === true],
+    ['로스터 f_seoha_roasted', (v) => v.f_seoha_roasted === true],
+  ],
+  ian: [
+    ['호감 75', (v) => Number(v.aff_ian) >= 75],
+    ['도망치지 않음 f_ian_stay', (v) => v.f_ian_stay === true],
+    ['공모 f_ian_submit', (v) => v.f_ian_submit === true],
+    ['새벽 연락 f_ian_key', (v) => v.f_ian_key === true],
+  ],
+  daon: [
+    ['호감 75', (v) => Number(v.aff_daon) >= 75],
+    ['간판을 맡음 f_daon_stay', (v) => v.f_daon_stay === true],
+    ['간판 f_daon_sign', (v) => v.f_daon_sign === true],
+  ],
+}
+const JUDGE_VARS = [
+  ...WATCH_VARS,
+  'f_seoha_saved', 'f_seoha_roasted', 'f_seoha_stay', 'f_seoha_roaster', 'f_seoha_advice', 'roaster_step',
+  'f_ian_stay', 'f_ian_submit', 'f_daon_stay', 'f_daon_sign',
 ]
 
 function readVars(story: Story, names: string[]) {
@@ -327,6 +357,7 @@ function play(policy: Policy, options: { check: boolean; savePhotos: number; rea
   let steps = 0
   let route: string | null = null
   let atRoute: RunResult['atRoute'] = null
+  let atJudge: RunResult['atJudge'] = null
   const trace: string[] = []
   while (steps++ < MAX_STEPS) {
     if (story.canContinue) {
@@ -349,6 +380,7 @@ function play(policy: Policy, options: { check: boolean; savePhotos: number; rea
         atRoute = readVars(story, WATCH_VARS)
       }
       if (!atRoute && (sim.day >= 6 || sim.ending)) atRoute = readVars(story, WATCH_VARS)
+      if (!atJudge && /^ending_/.test(where(story))) atJudge = readVars(story, JUDGE_VARS)
       if (options.trace && text && (t.from === undefined || t.from !== 'system')) trace.push(`  ${text.slice(0, 60)}`)
       continue
     }
@@ -376,6 +408,7 @@ function play(policy: Policy, options: { check: boolean; savePhotos: number; rea
     route,
     vars: readVars(story, WATCH_VARS),
     atRoute,
+    atJudge,
     lines: sim.lines,
     choices: sim.choices,
     stuck,
@@ -403,43 +436,45 @@ function focusPolicy(heroine: 'seoha' | 'ian' | 'daon' | 'all'): Policy {
     if (heroines.includes('seoha')) value += 3 * Number(story.variablesState.$('roaster_step') ?? 0)
     return value
   }
+  /** 다음 선택지(또는 끝)까지 읽는다 */
+  const runToChoice = (story: Story) => {
+    let guard = 0
+    while (story.canContinue && guard++ < 400) story.Continue()
+  }
   return (story, sim) => {
     const n = story.currentChoices.length
     if (n === 1) return 0
     const saved = story.state.ToJson()
     const savedSim = { photos: new Set(sim.photos), read: new Set(sim.read) }
     const base = score(story)
-    let best = 0
-    let bestValue = -Infinity
+    const values: number[] = []
+    // 두 수 앞까지 모두 본다: 이 선택 다음에 오는 선택도 플레이어가 가장 좋게 고른다고 친다.
+    // (호감이 100에 닿으면 점수 차이가 플래그에서만 나므로, 다음 선택을 무작위로 굴리면 위기 장면을 잘못 읽는다)
     for (let i = 0; i < n; i++) {
-      let total = 0
-      const tries = 3
-      for (let k = 0; k < tries; k++) {
-        story.state.LoadJson(saved)
-        story.ChooseChoiceIndex(i)
-        // 다음 선택 두 개까지 무작위로 굴린다
-        let depth = 0
-        let guard = 0
-        while (guard++ < 400) {
-          if (story.canContinue) {
-            story.Continue()
-            continue
-          }
-          if (story.currentChoices.length > 0 && depth < 2) {
-            story.ChooseChoiceIndex(Math.floor(Math.random() * story.currentChoices.length))
-            depth++
-            continue
-          }
-          break
+      story.state.LoadJson(saved)
+      story.ChooseChoiceIndex(i)
+      runToChoice(story)
+      let value = score(story) - base
+      const m = story.currentChoices.length
+      if (m > 0) {
+        const afterI = story.state.ToJson()
+        let bestNext = -Infinity
+        for (let j = 0; j < m; j++) {
+          story.state.LoadJson(afterI)
+          story.ChooseChoiceIndex(j)
+          runToChoice(story)
+          bestNext = Math.max(bestNext, score(story) - base)
         }
-        total += score(story) - base
+        value = bestNext
       }
-      const value = total / tries + Math.random() * 0.01
-      if (value > bestValue) {
-        bestValue = value
-        best = i
-      }
+      values.push(value)
     }
+    // 집중 플레이는 가장 좋은 것을, 모두에게 친절한 플레이는 거의 같은 것들(3점 안) 중에서 아무거나 고른다
+    // (한 사람을 정하지 못한 플레이어: 장터 마지막에 누구와 있을지 같은 선택이 무작위가 된다)
+    const top = Math.max(...values)
+    const margin = heroine === 'all' ? 3 : 0
+    const near = values.map((v, i) => (v >= top - margin ? i : -1)).filter((i) => i >= 0)
+    const best = near[Math.floor(Math.random() * near.length)]
     story.state.LoadJson(saved)
     sim.photos = savedSim.photos
     sim.read = savedSim.read
@@ -449,7 +484,7 @@ function focusPolicy(heroine: 'seoha' | 'ian' | 'daon' | 'all'): Policy {
 
 // ───────── 실행 ─────────
 
-function summarize(name: string, results: RunResult[]) {
+function summarize(name: string, results: RunResult[], focus?: string) {
   const count = (key: (r: RunResult) => string) => {
     const map = new Map<string, number>()
     for (const r of results) map.set(key(r), (map.get(key(r)) ?? 0) + 1)
@@ -464,6 +499,14 @@ function summarize(name: string, results: RunResult[]) {
   if (at.length) {
     const mean = (v: string) => (at.reduce((s, r) => s + Number(r.atRoute![v] ?? 0), 0) / at.length).toFixed(1)
     console.log(`  루트 결정 때 평균 호감: 서하 ${mean('aff_seoha')} · 이안 ${mean('aff_ian')} · 다온 ${mean('aff_daon')} · 실력 ${mean('skill')}`)
+  }
+  const heroine = /^(seoha|ian|daon)$/.test(focus ?? '') ? (focus as 'seoha' | 'ian' | 'daon') : null
+  if (heroine) {
+    const normal = results.filter((r) => r.ending === `${heroine}_normal` && r.atJudge)
+    if (normal.length) {
+      const missed = GOOD_CONDITIONS[heroine].map(([label, ok]) => `${label} ${normal.filter((r) => !ok(r.atJudge!)).length}`)
+      console.log(`  노멀 엔딩 ${normal.length}회에서 놓친 조건: ${missed.join(' · ')}`)
+    }
   }
   const stuck = results.filter((r) => r.stuck)
   if (stuck.length) {
@@ -482,17 +525,20 @@ if (TRACE) {
 }
 
 const t0 = Date.now()
-const random = Array.from({ length: RUNS }, () => play(randomPolicy, { check: true, savePhotos: 0.5, readPages: 0.03 }))
-summarize('무작위 플레이', random)
-{
-  const runs = Math.max(20, Math.floor(RUNS / 5))
+if (!ONLY || ONLY === 'random') {
+  const random = Array.from({ length: RUNS }, () => play(randomPolicy, { check: true, savePhotos: 0.5, readPages: 0.03 }))
+  summarize('무작위 플레이', random)
+}
+if (!ONLY || ONLY === 'all') {
+  const runs = ONLY ? RUNS : Math.max(20, Math.floor(RUNS / 5))
   const nice = Array.from({ length: runs }, () => play(focusPolicy('all'), { check: false, savePhotos: 0.7, readPages: 0.2 }))
   summarize('모두에게 친절한 플레이', nice)
 }
 for (const heroine of ['seoha', 'ian', 'daon'] as const) {
-  const runs = Math.max(20, Math.floor(RUNS / 5))
+  if (ONLY && ONLY !== heroine) continue
+  const runs = ONLY ? RUNS : Math.max(20, Math.floor(RUNS / 5))
   const focused = Array.from({ length: runs }, () => play(focusPolicy(heroine), { check: false, savePhotos: 1, readPages: 1 }))
-  summarize(`${PEOPLE[heroine].name} 집중 플레이`, focused)
+  summarize(`${PEOPLE[heroine].name} 집중 플레이`, focused, heroine)
 }
 
 const unseen = [...knotNames].filter((k) => !visited.has(k)).sort()
