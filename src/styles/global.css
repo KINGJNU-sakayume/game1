@@ -1000,20 +1000,21 @@ img {
   backdrop-filter: blur(20px);
 }
 
-.activity-pill--floating {
-  position: absolute;
-  top: calc(var(--safe-top) + 60px);
-  left: 50%;
-  z-index: 30;
-  width: min(calc(100% - 24px), 360px);
+.activity-pill--inline {
+  flex: none;
+  margin: 8px 12px 0;
   min-height: 52px;
   padding: 8px 12px 8px 8px;
   border-radius: 26px;
   background: var(--pill-bg);
   color: var(--pill-text);
-  box-shadow: 0 10px 28px var(--banner-shadow);
-  transform: translateX(-50%);
+  box-shadow: 0 6px 18px var(--banner-shadow);
   animation: pill-in 320ms var(--ease-app) both;
+}
+
+/* 어두운 앱(튜브)에서는 테두리로 알약을 구분한다 */
+.app-shell--dark .activity-pill--inline {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
 
 .activity-pill--home {
@@ -1028,10 +1029,12 @@ img {
   animation: pill-glow 1.8s ease-in-out infinite;
 }
 
+/* 헤더 아래로 내려오며 본문을 부드럽게 민다 */
 @keyframes pill-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -14px) scale(0.92);
+    transform: translateY(-10px) scale(0.96);
+    margin-bottom: -60px;
   }
 }
 
@@ -1082,7 +1085,7 @@ img {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .activity-pill--floating,
+  .activity-pill--inline,
   .activity-pill--home {
     animation: none;
   }

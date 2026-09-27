@@ -15,6 +15,10 @@
   object-fit: cover;
 }
 
+.avatar__unknown {
+  color: var(--color-text-muted);
+}
+
 .story-image {
   display: block;
   width: 100%;

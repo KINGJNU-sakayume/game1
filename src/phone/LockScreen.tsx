@@ -4,8 +4,8 @@ import { appBadge, useGame } from '../engine/store'
 import { ROOMS } from '../story/cast'
 import type { RoomId } from '../story/cast'
 import { getApp } from '../apps/registry'
-import { APP_CHOICE_PROMPTS } from '../apps/ids'
 import type { AppId } from '../apps/ids'
+import { pendingPlace } from './ActivityPill'
 import { useGameTime } from '../state/gameClock'
 import { useSwipeUp } from './useSwipeUp'
 
@@ -44,7 +44,8 @@ function Notice({ icon, title, text, onOpen }: { icon: ReactNode; title: string;
 export default function LockScreen({ onUnlock, onOpenRoom, onOpenApp }: Props) {
   const { dateLabel, timeLabel } = useGameTime()
   const unread = useGame((s) => s.unread)
-  const choice = useGame((s) => (s.choice?.kind === 'app' ? s.choice : null))
+  const choice = useGame((s) => s.choice)
+  const place = pendingPlace(choice)
   // useGame은 매번 같은 값을 돌려줘야 하므로 앱마다 따로 읽는다
   const callBadge = useGame((s) => appBadge(s, 'call'))
   const snapBadge = useGame((s) => appBadge(s, 'snap'))
@@ -72,12 +73,12 @@ export default function LockScreen({ onUnlock, onOpenRoom, onOpenApp }: Props) {
       <div className="lock__time">{timeLabel}</div>
 
       <div className="lock__notifications">
-        {choice?.app && (
+        {place && (
           <Notice
-            icon={appIcon(choice.app)}
-            title={getApp(choice.app).name}
-            text={choice.title ?? APP_CHOICE_PROMPTS[choice.app]}
-            onOpen={(rect) => onOpenApp(choice.app!, rect)}
+            icon={appIcon(place.app)}
+            title={place.title}
+            text={place.text}
+            onOpen={(rect) => (place.room ? onOpenRoom(place.room, rect) : onOpenApp(place.app, rect))}
           />
         )}
         {rooms.map((room) => (

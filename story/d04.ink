@@ -10,7 +10,6 @@ VAR f_d4_grinder = false      // 그라인더를 고쳤다
 VAR f_d4_chair = false        // 의자를 고쳤다
 VAR f_d4_tteok = false        // 떡솥 뚜껑을 고쳤다
 VAR f_d4_slept = false        // 일찍 자서 새벽 영상통화를 못 받았다
-VAR f_ian_key = false         // 이안 루트 핵심: 새벽 영상통화를 받았다
 VAR f_ian_why = false         // 이안에게 왜 뒷모습만 그리는지 물었다
 VAR menu_name = 0             // 서하의 봄 메뉴 이름: 1 오후세시의 봄 / 2 딸기가 먼저 온 오후 / 3 그냥 딸기 라떼
 
@@ -95,7 +94,7 @@ VAR menu_name = 0             // 서하의 봄 메뉴 이름: 1 오후세시의 
 = decline_seoha
 # room: seoha
 * [솔직하게 말하기 # say: 두 시엔 윗집 약속이 먼저 잡혀서요. 죄송해요.]
-    ~ raise(aff_seoha, 2)
+    ~ raise(aff_seoha, 3)
     # wait: 3
     솔직하게 말해 줘서 고마워요 :)
     오늘은 핸드드립만 팔아야겠네요. 그것도 나쁘지 않아요.
@@ -179,7 +178,7 @@ VAR menu_name = 0             // 서하의 봄 메뉴 이름: 1 오후세시의 
 # memo: ian
 오후세시 단골. 오후 세시에 일어나서 오후세시에 간다. 아이스 바닐라 라떼 샷 추가.
 * [순서대로 할게요 # say: 사장님처럼 순서대로 할게요. 오늘 못 가는 곳은 내일 꼭 갈게요.]
-    ~ raise(aff_daon, 3)
+    ~ raise(aff_daon, 4)
     # from: choi
     ㅋㅋㅋ 사장님 다 됐네
     # from: halmeoni # big
@@ -356,7 +355,7 @@ VAR menu_name = 0             // 서하의 봄 메뉴 이름: 1 오후세시의 
 헐. 안 내려가. 진짜 안 내려가!!
 # from: ian
 천재?? 이거 진짜 5천 원이에요??
-~ raise(aff_ian, 4)
+~ raise(aff_ian, 3)
 ~ f_d4_chair = true
 -> sketch
 
@@ -402,7 +401,7 @@ VAR menu_name = 0             // 서하의 봄 메뉴 이름: 1 오후세시의 
 # cut: ian_face_shy_01 # from: ian
 어때요? 이번엔 연습 아니고 진짜.
 * [시계줄까지 그렸네요 # say: 시계줄까지 그렸네요. 제 등이 저보다 멋있어요.]
-    ~ raise(aff_ian, 5)
+    ~ raise(aff_ian, 4)
     ~ f_ian_eye = true
     # from: ian
     ㅋㅋㅋ 시계줄 보라고 그린 건데 알아봤다!
@@ -558,7 +557,7 @@ VAR menu_name = 0             // 서하의 봄 메뉴 이름: 1 오후세시의 
 = daon_sees
 # from: daon # time: 20:20
 할아버지 수첩 보셨네요.
-~ raise(aff_daon, 4)
+~ raise(aff_daon, 5)
 # from: halmeoni # big
 다온이 최고
 -> d04_night
@@ -686,7 +685,7 @@ VAR menu_name = 0             // 서하의 봄 메뉴 이름: 1 오후세시의 
 # call: ian # video
 * [받기 # answer]
     ~ f_ian_key = true
-    ~ raise(aff_ian, 4)
+    ~ raise(aff_ian, 3)
     # cut: ian_call_night_01
     앗 받았다 ㅋㅋ 안 자고 있었죠?
     # narr
@@ -705,7 +704,7 @@ VAR menu_name = 0             // 서하의 봄 메뉴 이름: 1 오후세시의 
         ~ raise(aff_ian, 3)
         ㅋㅋㅋ 그건 모델이 좋아서… 아 아니다 취소
     * * [그리고 싶은 게 뭔데요? # say: 그리고 싶은 게 뭔데요?]
-        ~ raise(aff_ian, 4)
+        ~ raise(aff_ian, 3)
         …
         비밀 ㅋㅋ 그려지면 보여 줄게요.
     * * [졸려요 # say: 저 사실 좀 졸려요 ㅎㅎ]

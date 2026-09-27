@@ -8,9 +8,11 @@ import { appBadge, useGame } from '../engine/store'
 import { WALLPAPER_SRC } from '../state/assets'
 import { weatherOf } from '../story/weather'
 import ActivityPill from './ActivityPill'
+import type { RoomId } from '../story/cast'
 
 interface Props {
   onOpenApp: (id: AppId, iconRect: DOMRect) => void
+  onOpenRoom: (room: RoomId, rect: DOMRect) => void
 }
 
 /** 배경화면 파일이 실제로 있을 때만 true */
@@ -52,7 +54,7 @@ function AppIcon({ app, onOpenApp }: { app: AppDef; onOpenApp: Props['onOpenApp'
   )
 }
 
-export default function HomeScreen({ onOpenApp }: Props) {
+export default function HomeScreen({ onOpenApp, onOpenRoom }: Props) {
   const { dateLabel, timeLabel } = useGameTime()
   const day = useGame((s) => s.clock.day)
   const hasWallpaper = useWallpaperAvailable(WALLPAPER_SRC)
@@ -70,7 +72,7 @@ export default function HomeScreen({ onOpenApp }: Props) {
         </div>
       </section>
 
-      <ActivityPill variant="home" openApp={null} onOpen={onOpenApp} />
+      <ActivityPill variant="home" openApp={null} onOpen={onOpenApp} onOpenRoom={onOpenRoom} />
 
       <ul className="app-grid">
         {APPS.filter((a) => !a.dock).map((app) => (

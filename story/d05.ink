@@ -164,7 +164,7 @@ VAR d5_with = 0              // 끝까지 함께 있었던 사람: 1 서하 / 2 
 입양 캠페인 천막 아래에서 김다온이 시계를 본다. 그리고 나를 본다.
 # cut: daon_face_neutral_01 # from: daon
 네 시 전이네요.
-~ raise(aff_daon, 3)
+~ raise(aff_daon, 4)
 -> lights
 
 = lights
@@ -465,14 +465,14 @@ VAR d5_with = 0              // 끝까지 함께 있었던 사람: 1 서하 / 2 
 ~ temp s = aff_seoha
 ~ temp i = aff_ian
 ~ temp d = aff_daon
-// 자격: 호감 40 이상 + 핵심 플래그. 자격이 없으면 -1
-{ not (s >= 40 && f_seoha_key):
+// 자격: 호감 35 이상 + 핵심 플래그. 자격이 없으면 -1
+{ not (s >= 35 && f_seoha_key):
     ~ s = -1
 }
-{ not (i >= 40 && f_ian_key):
+{ not (i >= 35 && f_ian_key):
     ~ i = -1
 }
-{ not (d >= 40 && f_daon_key):
+{ not (d >= 35 && f_daon_key):
     ~ d = -1
 }
 // 동점이면 오늘 밤 끝까지 함께 있던 사람

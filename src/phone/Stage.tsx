@@ -198,12 +198,21 @@ export default function Stage() {
             </div>
           </div>
           {info && (
-            <div className="vplayer__info">
-              <p className="vplayer__title">{info.title}</p>
-              <p className="vplayer__sub">
-                {info.channel} · {info.views} · {info.ago}
-              </p>
-            </div>
+            <>
+              <div className="vplayer__info">
+                <p className="vplayer__title">{info.title}</p>
+                <p className="vplayer__sub">
+                  {info.views} · {info.ago}
+                </p>
+              </div>
+              <div className="vplayer__channel">
+                <span className="tube-card__avatar" aria-hidden>
+                  {info.channel.slice(0, 1)}
+                </span>
+                <span className="vplayer__channel-name">{info.channel}</span>
+                <span className="vplayer__length">{info.length}</span>
+              </div>
+            </>
           )}
         </div>
         <div className="stage__bottom">

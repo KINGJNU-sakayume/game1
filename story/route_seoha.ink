@@ -1084,6 +1084,33 @@ VAR f_seoha_saved = false     // D13 재계약이 됐다
 * {not (f_seoha_confess && aff_seoha >= 70)} [노을 예뻤어요]
     ~ raise(aff_seoha, 1)
     내일 사모님 만나요. 떨리네요 :)
+- {f_seoha_stay && f_seoha_roaster && not f_seoha_roasted: -> roaster_study}
+# dayend
+-> seoha_d13
+
+// 어젯밤 로스터가 돌지 않았다면, 재계약 전날 밤에 한 번 더 배울 수 있다 (D13 second_try)
+= roaster_study
+# time: 23:20
+# note: 3월 20일
+책상 위에 로스터가 있다. 어젯밤 돌지 않은 드럼. 내일은 재계약이고, 오후엔 시간이 난다.
+# ask: 자기 전에
+* [튜브로 로스터 공부하기 # act]
+    # ask: 오늘 밤 볼 영상
+    * * {not k_roaster} [소형 로스터 살리기 ① 히터와 벨트 # watch: roaster]
+        -> video_roaster ->
+    * * {not k_roaster2} [소형 로스터 살리기 ② 온도 센서 # watch: roaster2]
+        -> video_roaster2 ->
+    * * [그만 보기]
+    - - { roaster_step >= 2:
+            # note: 3월 20일
+            히터, 벨트, 센서. 이제 순서가 머릿속에 있다. 내일 오후 세시에 한 번 더 열어 본다.
+        - else:
+            # note: 3월 20일
+            아직 한 군데가 남았다. 영상만으로는 안 되는 곳.
+        }
+* [오늘은 그냥 자기 # act]
+    # note: 3월 20일
+    로스터에 천을 덮었다. 내일은 서하 씨 옆에만 있으면 된다.
 - # dayend
 -> seoha_d13
 
@@ -1155,6 +1182,7 @@ VAR f_seoha_saved = false     // D13 재계약이 됐다
 ~ raise(aff_seoha, 4)
 # gallery: seoha_cg_roast_01
 # done: roaster
+# done: roaster2
 # scene: end
 -> evening
 

@@ -454,7 +454,7 @@ VAR f_d3_number = 0          // 다온에게 번호를 어떻게 하겠다고 �
 # from: daon
 …좋네요.
 ~ f_daon_time = true
-~ raise(aff_daon, 5)
+~ raise(aff_daon, 6)
 -> talk
 
 = late
@@ -505,7 +505,7 @@ VAR f_d3_number = 0          // 다온에게 번호를 어떻게 하겠다고 �
 # from: daon
 하나만 물어볼게요. 그 번호, 계속 쓸 거예요?
 * [모른 척 못 하겠어요 # say: 모르겠어요. 근데 그 번호로 연락 오는 사람들은… 모른 척 못 하겠어요.]
-    ~ raise(aff_daon, 5)
+    ~ raise(aff_daon, 6)
     ~ f_d3_number = 1
     # cut: daon_face_surprised_01 # from: daon
     …

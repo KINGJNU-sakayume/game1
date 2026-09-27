@@ -36,7 +36,8 @@ function compile(): string {
   const mainPath = resolve(storyDir, 'main.ink')
   const compiler = new Compiler(
     readFileSync(mainPath, 'utf8'),
-    new CompilerOptions(mainPath, [], false, (message: string, type: number) => {
+    // countAllVisits: 모든 knot·stitch의 방문 횟수를 세서 커버리지를 정확히 잰다 (빌드는 끄고 컴파일)
+    new CompilerOptions(mainPath, [], true, (message: string, type: number) => {
       if (type === 2) errors.push(message)
       else warnings.push(message)
     }, fileHandler),
@@ -164,14 +165,11 @@ function where(story: Story) {
   return story.state.currentPathString ?? '?'
 }
 
-/** 이제 읽을 곳(Continue 직전의 위치)을 기록한다 */
-function markVisit(story: Story) {
-  const path = story.state.currentPathString
-  if (!path) return
-  const parts = path.split('.')
-  const knot = parts[0]
-  if (knot) visited.set(knot, (visited.get(knot) ?? 0) + 1)
-  if (parts[1] && !/^\d+$/.test(parts[1]) && parts[1] !== 'c-0') visited.set(`${knot}.${parts[1]}`, (visited.get(`${knot}.${parts[1]}`) ?? 0) + 1)
+/** 한 번의 플레이가 끝난 뒤, ink가 센 방문 횟수로 지나간 knot·stitch를 기록한다 */
+function collectVisits(story: Story) {
+  for (const name of knotNames) {
+    if (story.state.VisitCountAtPathString(name) > 0) visited.set(name, (visited.get(name) ?? 0) + 1)
+  }
 }
 
 /** 한 줄의 태그를 검사하고 시뮬레이션 상태에 반영 */
@@ -332,7 +330,6 @@ function play(policy: Policy, options: { check: boolean; savePhotos: number; rea
   const trace: string[] = []
   while (steps++ < MAX_STEPS) {
     if (story.canContinue) {
-      markVisit(story)
       const before = where(story)
       const text = (story.Continue() ?? '').trim()
       if (story.hasError) {
@@ -372,6 +369,7 @@ function play(policy: Policy, options: { check: boolean; savePhotos: number; rea
     }
     break
   }
+  collectVisits(story)
   const stuck = steps >= MAX_STEPS ? `무한 반복 의심 (${where(story)})` : sim.ending ? null : `엔딩 없이 끝남 (D${sim.day} ${sim.time}, ${where(story)})`
   return {
     ending: sim.ending,
@@ -399,7 +397,10 @@ function focusPolicy(heroine: 'seoha' | 'ian' | 'daon' | 'all'): Policy {
     for (const name of story.variablesState['_globalVariables']?.keys?.() ?? []) {
       if (typeof name !== 'string' || story.variablesState.$(name) !== true) continue
       if (heroines.some((h) => name.startsWith(`f_${h}`))) value += 3
+      // 수리 지식은 나중에 쓸 데가 있다 (정보를 챙기는 플레이어)
+      if (name.startsWith('k_')) value += 1
     }
+    if (heroines.includes('seoha')) value += 3 * Number(story.variablesState.$('roaster_step') ?? 0)
     return value
   }
   return (story, sim) => {

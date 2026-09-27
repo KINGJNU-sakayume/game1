@@ -34,12 +34,17 @@
   color: var(--tube-bg);
 }
 
+.tube__tab[aria-selected='true'] .tube__count {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* 본 영상 수 (새 소식이 아니므로 빨간 배지 대신 차분한 숫자) */
 .tube__count {
   min-width: 18px;
   padding: 0 5px;
   border-radius: 9px;
-  background: var(--tube-accent);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+  color: inherit;
   font-size: 11px;
   line-height: 18px;
 }

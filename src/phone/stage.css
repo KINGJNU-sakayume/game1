@@ -417,6 +417,27 @@
   color: var(--tube-muted);
 }
 
+.vplayer__channel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vplayer__channel-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.vplayer__length {
+  font-size: 13px;
+  color: var(--tube-muted);
+}
+
 .stage--tube .stage__bottom {
   margin-top: auto;
 }

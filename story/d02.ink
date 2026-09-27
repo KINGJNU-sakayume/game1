@@ -9,6 +9,7 @@ VAR f_d2_lied_again = false    // 다온 앞에서 거짓말을 한 번 더 했�
 VAR f_d2_daon_honest = false   // 다온에게 번호 사정과 실력을 솔직히 말했다
 VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시지를 못 봤다 → D3 아침에 이어짐
 VAR f_d2_doodle_replied = false // 이안의 낙서에 답했다 (밤 또는 D3 아침)
+VAR f_ian_key = false           // 이안 루트 핵심: 새벽 연락에 답했다 (D2 밤 낙서 또는 D4 새벽 영상통화)
 
 
 // ════════════════════════════════
@@ -134,7 +135,7 @@ VAR f_d2_doodle_replied = false // 이안의 낙서에 답했다 (밤 또는 D3 
 # from: ian
 아 그건 보지 마요 ㅋㅋ 마감 원고예요. 아직 엉망이에요.
 * [창문 빛이 좋아요 # say: 창문으로 들어오는 빛 색이 좋아요. 진짜 새벽 같아요.]
-    ~ raise(aff_ian, 7)
+    ~ raise(aff_ian, 6)
     ~ f_ian_eye = true
     # cut: ian_face_shy_01 # from: ian
     …그거 제가 제일 오래 붙잡고 있던 부분인데.
@@ -199,7 +200,7 @@ VAR f_d2_doodle_replied = false // 이안의 낙서에 답했다 (밤 또는 D3 
 오늘 스팀 아주 멀쩡해요 :)
 혹시 지나가시면 커피 한 잔 빚진 거 갚을게요.
 * [다음에 꼭 갈게요]
-    ~ raise(aff_seoha, 2)
+    ~ raise(aff_seoha, 3)
     네, 기다릴게요 :)
 * [오늘 저녁에 갈까요?]
     ~ raise(aff_seoha, 1)
@@ -358,7 +359,7 @@ VAR f_d2_doodle_replied = false // 이안의 낙서에 답했다 (밤 또는 D3 
     # room: seoha
     # from: me
     오늘도 마감 잘 하셨어요?
-    ~ raise(aff_seoha, 3)
+    ~ raise(aff_seoha, 4)
     # wait: 3
     {aff_seoha >= 20: 네 ㅎㅎ 이 시간에 안부 묻는 사람이 또 생겼네요 :)|네, 오늘도 무사히 마감했어요 :)}
 * [윤서하에게 전화 # dial: seoha]
@@ -394,11 +395,13 @@ VAR f_d2_doodle_replied = false // 이안의 낙서에 답했다 (밤 또는 D3 
     ~ raise(aff_ian, 5)
     ~ f_ian_eye = true
     ~ f_d2_doodle_replied = true
+    ~ f_ian_key = true
     헉 들켰다 ㅋㅋㅋㅋ
     뒷모습은 제대로 그려 준다고 했잖아요. 이건 연습!
 * [잘 그리시네요]
     ~ raise(aff_ian, -2)
     ~ f_d2_doodle_replied = true
+    ~ f_ian_key = true
     ㅋㅋ 감사해요
     # typing: 0.8
     잘 자요!

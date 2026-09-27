@@ -120,7 +120,7 @@ export default function App() {
     const app = openApp && getApp(openApp.id)
     content = (
       <>
-        <HomeScreen onOpenApp={open} />
+        <HomeScreen onOpenApp={open} onOpenRoom={openRoom} />
         {openApp && app && (
           <AppShell
             key={openApp.id}
@@ -130,6 +130,7 @@ export default function App() {
             closing={openApp.closing}
             onClose={close}
             onClosed={handleClosed}
+            notice={<ActivityPill variant="inline" openApp={openApp.id} onOpen={openAppFrom} onOpenRoom={openRoom} />}
           >
             <app.Component
               profile={profile}
@@ -139,7 +140,6 @@ export default function App() {
             />
           </AppShell>
         )}
-        {openApp && !openApp.closing && <ActivityPill variant="floating" openApp={openApp.id} onOpen={openAppFrom} />}
         <NotificationBanner onOpen={openBanner} />
       </>
     )
