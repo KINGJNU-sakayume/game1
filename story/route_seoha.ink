@@ -610,7 +610,7 @@ VAR f_seoha_saved = false     // D13 재계약이 됐다
 
 = candle
 # time: 20:05
-# scene: bg_cafe_night_01 # at: cafe, 정전
+# scene: bg_cafe_blackout_01 # at: cafe, 정전
 골목의 가로등은 멀쩡하다. 오후세시만 깜깜하다.
 유리문 너머로 작은 불빛 두 개가 흔들린다.
 # cut: seoha_scene_candle_01 # from: seoha

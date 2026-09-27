@@ -872,7 +872,7 @@ VAR f_daon_confess = false    // D12 마음을 말했다
 오후 두 시. 만물수선 자리 앞에 사람이 모여 있다.
 최 사장님의 사다리, 경비 아저씨의 공구함, 박 할머니의 떡 상자. {f_daon_help: 망원살이를 보고 온 모르는 얼굴들도 여럿이다.}
 커피 캐리어를 든 윤서하, 스케치북을 든 채이안도 있다. 서하 씨는 커피를 돌리고, 이안 씨는 간판을 그린다.
-# cut: daon_scene_sign_01 # from: daon
+# cut: daon_face_neutral_01 # from: daon
 왔어요. 두 시 정각.
 사다리에 오른다. 간판 네 귀퉁이의 볼트가 삼십 년 치 녹으로 덮여 있다.
 { k_bolt:
@@ -907,7 +907,7 @@ VAR f_daon_confess = false    // D12 마음을 말했다
 = sign_down
 # cut: bg_shop_site_day_01
 "하나, 둘, 셋!" 여럿이 받쳐 든 간판이 천천히 내려온다. 박수가 터진다. 박 할머니가 운다.
-# cut: daon_scene_sign_01
+# cut: daon_scene_sign_02
 땅에 내려온 간판 앞에 그녀가 쪼그려 앉는다. "수" 자의 삐친 획을 손끝으로 쓸어 본다.
 # from: daon
 …할아버지 글씨예요.

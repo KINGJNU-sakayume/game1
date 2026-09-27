@@ -38,7 +38,7 @@ VAR f_alone_gave = false      // 번호를 다온(사장님 가족)에게 넘기
 # note: 3월 14일
 구름 조금. 오늘도 단골방에서 하루가 시작된다.
 # time: 11:00
-# scene: bg_villa_boiler_01 # at: home, 관리실 라디오
+# scene: bg_villa_front_01 # at: home, 관리실 라디오
 관리실. 테이프로 칭칭 감긴 라디오가 지지직거린다.
 { k_jeju:
     (볼륨 손잡이 안쪽, 세정제 한 번. 제주에서 온 영상.)
@@ -182,7 +182,7 @@ VAR f_alone_gave = false      // 번호를 다온(사장님 가족)에게 넘기
 봄 메뉴가 나왔어요 🍓 오후세시에서 기다릴게요 :)
 # post: ian_p6a # from: ian # photo: ian_cg_box_01
 외주 마감 완료. 잠시 쉬러 갑니다
-# post: dubu_p5a # from: dubu # photo: dubu_cg_kittens_02
+# post: dubu_p5a # from: dubu # photo: dubu_cg_alone_01
 아기들 전부 새 가족 찾았어요 🐾 두부는 다시 외동
 # note: 3월 20일
 세 사람의 봄은 각자 흘러가고 있다. 나는 그 봄을 스냅으로 본다.
