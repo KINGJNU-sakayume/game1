@@ -8,6 +8,7 @@ VAR f_d2_confessed = false     // D1 "조카" 거짓말을 다온에게 털어�
 VAR f_d2_lied_again = false    // 다온 앞에서 거짓말을 한 번 더 했다
 VAR f_d2_daon_honest = false   // 다온에게 번호 사정과 실력을 솔직히 말했다
 VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시지를 못 봤다 → D3 아침에 이어짐
+VAR f_d2_doodle_replied = false // 이안의 낙서에 답했다 (밤 또는 D3 아침)
 
 
 // ════════════════════════════════
@@ -39,12 +40,18 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
 - # typing: 1.5
 열한 시쯤 괜찮으세요? 씻고 사람 되어 있을게요
 # plan: ian_light, 2, 11:00, 형광등 · 해든빌라 301호
+# memo: ian
+해든빌라 301호, 바로 윗집. 느낌표와 물음표를 두 개씩 쓴다. 아침 7시에 "아직 안 잔" 사람.
 # room: dangol # from: guard # time: 08:20
 201호 총각 해든빌라 사는 거 맞지?
 # from: guard
 그럼 301호 아가씨 형광등도 좀 봐 줘. 복도까지 깜빡거려
+# from: guard
+점등관 여분은 관리실에 있음. 사장님이 맡겨 둔 거
 # from: choi
 총각 인기 많네 ㅋㅋ 냉장고는 줄 서 있어요
+# town: t_hall, 동네생활, 해든빌라 1층
+해든빌라 3층 복도 불 누가 좀… 밤마다 공포 영화 찍어요
 {f_d1_left_dangol: -> tease | -> d02_scene}
 
 = tease
@@ -58,7 +65,7 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
 // ════════════════════════════════
 === d02_scene ===
 # time: 11:02
-# scene: bg_villa_hall_01
+# scene: bg_villa_hall_01 # at: home, 301호 형광등
 초록색 페인트가 벗겨진 계단 난간. 3층까지 올라가는 동안 복도 형광등이 두 번 꺼졌다 켜진다.
 (바로 윗집인데 올라와 본 건 처음이다.)
 # cut: ian_scene_light_01 # from: ian
@@ -77,12 +84,14 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
     거짓말 ㅋㅋㅋ 표정에 다 쓰여 있어요.
 - # cut: ian_scene_light_01
 천장의 긴 형광등이 파르르 떨다가 꺼지고, 다시 켜진다. 끝부분이 까맣게 그을려 있다.
-{skill >= 1: -> easy | -> hard}
+{k_starter: -> easy | -> hard}
 
 = easy
-(어젯밤 유튜브가 알고리즘으로 형광등 영상까지 틀어 줬다. 이건 본 적 있다.)
-옆에 붙은 작은 원통, 점등관을 돌려서 뺀다. 경비 아저씨가 준 새것을 끼운다.
+(어젯밤 알고리즘이 틀어 준 영상이다. 끝이 그을리면 형광등이 아니라 점등관.)
+옆에 붙은 작은 원통, 점등관을 반 바퀴 돌려서 뺀다. 관리실에서 받아 온 새것을 반 바퀴.
 ~ raise(aff_ian, 4)
+# from: ian
+어? 형광등 안 갈아요? 그 쪼끄만 거 하나로 끝이에요??
 -> fixed
 
 = hard
@@ -106,10 +115,10 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
     -> together
 
 = together
-그녀가 휴대폰을 내민다. 영상 속 아저씨가 형광등 옆의 작은 원통을 가리킨다. 점등관이라고 한다.
+그녀가 휴대폰을 내민다. 튜브 영상 속 아저씨가 형광등 옆의 작은 원통을 가리킨다. 점등관이라고 한다.
 # from: ian
 어? 이거 경비 아저씨가 저번에 주고 가신 거랑 똑같은데?
-서랍에서 똑같은 원통이 나온다. 돌려서 빼고, 돌려서 끼운다.
+서랍에서 똑같은 원통이 나온다. 반 바퀴 돌려서 빼고, 반 바퀴 돌려서 끼운다.
 -> fixed
 
 = fixed
@@ -119,12 +128,13 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
 됐다!! 형광등 부활!
 # done: ian_light
 (방 안이 갑자기 환해지자, 벽에 붙은 그림들이 보인다.)
+벽 가득한 그림 속 사람들은 하나같이 뒤를 돌아보고 있다. 얼굴이 있는 그림은 한 장도 없다.
 # cut: ian_scene_monitor_01
 책상 위 모니터에 그리다 만 그림이 떠 있다. 새벽의 창가, 식어 가는 커피 잔, 파란 빛이 들어오는 방.
 # from: ian
 아 그건 보지 마요 ㅋㅋ 마감 원고예요. 아직 엉망이에요.
 * [창문 빛이 좋아요 # say: 창문으로 들어오는 빛 색이 좋아요. 진짜 새벽 같아요.]
-    ~ raise(aff_ian, 8)
+    ~ raise(aff_ian, 7)
     ~ f_ian_eye = true
     # cut: ian_face_shy_01 # from: ian
     …그거 제가 제일 오래 붙잡고 있던 부분인데.
@@ -151,7 +161,10 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
     ~ raise(aff_ian, 2)
     # from: ian
     앞모습은… 더 친해지면요 ㅋㅋ
+    (농담처럼 말했는데, 눈은 웃지 않는다.)
 - # scene: end
+# memo: ian
+일러스트레이터. 목에 늘 흰 헤드폰. 벽에 붙은 그림 속 사람들은 전부 뒷모습이다.
 -> d02_afternoon
 
 
@@ -159,7 +172,7 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
 // 오후
 // ════════════════════════════════
 === d02_afternoon ===
-# time: 15:30
+# time: 15:30 # at: home
 # room: dangol
 # from: ian
 형광등 부활했습니다 여러분 ㅋㅋㅋㅋ
@@ -171,6 +184,13 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
 잘했어요
 # from: guard
 복도 것도 이제 안 깜빡이네
+# townreply: t_hall, 해든빌라 1층
+오 오늘은 안 깜빡이네요?? 누가 고쳤지
+# time: 15:42
+# post: ian_p1 # from: ian # photo: ian_cg_light_01
+형광등 부활 🎉 오늘부터 다시 밤샘 가능
+# post: ian_p1
+수리해 주신 분은 기사님이 아니라 아랫집 사람임 ㅋㅋ
 {aff_seoha >= 15: -> seoha_ping | -> d02_evening}
 
 = seoha_ping
@@ -182,8 +202,9 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
     ~ raise(aff_seoha, 2)
     네, 기다릴게요 :)
 * [오늘 저녁에 갈까요?]
-    ~ raise(aff_seoha, 2)
+    ~ raise(aff_seoha, 1)
     아 오늘은 원두 들어오는 날이라 일찍 닫아요 ㅠ
+    (이모티콘은 :) 하나만 쓰는 줄 알았는데. 급하면 ㅠ도 쓰는구나.)
     다음에요 :)
 - -> d02_evening
 
@@ -257,9 +278,10 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
     ~ f_d2_daon_honest = true
     # wait: 4
     알아요.
-    형광등도 유튜브 보고 갈았다면서요. 단톡방에 다 나와요.
+    형광등도 영상 보고 갈았다면서요. 단톡방에 다 나와요.
 - # typing: 1.5
 내일 저녁 8시. 망원 24시 동물의료센터 앞.
+# pin: hospital
 늦지 마세요.
 * [네, 8시에 갈게요]
     ~ raise(aff_daon, 1)
@@ -270,6 +292,8 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
     8시요.
 - # plan: daon_notebook, 3, 20:00, 사장님 수첩 받기 · 동물의료센터 앞
 # todo: notebook, 내일 8시 정각. 늦지 말 것
+# memo: daon
+김다온. 김 사장님의 손녀, 동물병원 수의사. 문장마다 마침표를 찍는다. 물음표도 마침표로 쓴다.
 -> d02_night
 
 
@@ -280,20 +304,34 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
 # time: 22:30
 # note: 3월 10일
 하루에 두 사람. 한 명은 느낌표를 세 개씩 쓰고, 한 명은 마침표만 쓴다.
-* [유튜브로 수리 공부하기 # act]
-    ~ study()
-    # note: 공부 기록
-    {skill >= 2: 냉장고 문 고무, 점등관, 보일러 소음. 오늘은 영상 속 아저씨 말이 조금 알아들린다.|형광등 영상을 다시 봤다. 오늘 한 게 우연이 아니었으면 좋겠다.}
+# ask: 오늘 밤 뭐 하지?
+* [튜브로 수리 공부하기 # act]
+    -> tube
 * [누군가에게 먼저 연락하기 # act]
     -> contact
 * [일찍 자기 # act]
     ~ f_d2_slept = true
     # note: 3월 10일
     알림을 끄고 누웠다. 윗집에서 오늘은 의자 끄는 소리가 조금 조용하다.
+    -> late
+
+= tube
+# ask: 오늘 밤 볼 영상
+* {not k_boiler} [보일러에서 쇠 긁는 소리 # watch: boiler]
+    -> video_boiler ->
+* {not k_gasket} [냉장고 문 고무 다시 붙이기 # watch: gasket]
+    -> video_gasket ->
+* [뚜껑이 자꾸 뜰 때 — 경첩 핀 # watch: hinge]
+    -> video_hinge ->
+* [의자가 자꾸 내려갈 때 (알고리즘 추천) # watch: chair]
+    -> video_chair ->
+    # note: 3월 10일
+    알고리즘은 오늘도 내가 모르는 내일을 아는 것 같다.
 - -> late
 
 = contact
-* [윗집에 연락하기 # act]
+# ask: 누구에게 연락할까?
+* [채이안에게 메시지 # text: ian]
     # time: 22:40
     # room: ian
     # from: me
@@ -301,7 +339,21 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
     ~ raise(aff_ian, 3)
     넹 ㅋㅋㅋ 너무 밝아서 눈부셔요
     덕분에 마감 속도 두 배!
-* [카페 사장님께 연락하기 # act]
+    # typing: 0.8
+    근데 먼저 연락 온 건 처음이다 ㅋㅋ
+* [채이안에게 전화 # dial: ian]
+    # time: 22:40
+    # call: ian # outgoing
+    헐 전화?? ㅋㅋㅋ 무슨 일이에요
+    # from: me
+    형광등 괜찮나 해서요.
+    ~ raise(aff_ian, 3)
+    괜찮아요 ㅋㅋ 너무 밝아서 그림이 다 틀려 보여요. 형광등이 너무 잘 나와도 문제네.
+    근데 전화로 안부 묻는 사람 진짜 오랜만이다.
+    # narr
+    (수화기 너머로 태블릿 펜 긁는 소리가 들린다. 통화하면서도 그리는 모양이다.)
+    # call: end
+* [윤서하에게 메시지 # text: seoha]
     # time: 22:40
     # room: seoha
     # from: me
@@ -309,9 +361,28 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
     ~ raise(aff_seoha, 3)
     # wait: 3
     {aff_seoha >= 20: 네 ㅎㅎ 이 시간에 안부 묻는 사람이 또 생겼네요 :)|네, 오늘도 무사히 마감했어요 :)}
+* [윤서하에게 전화 # dial: seoha]
+    # time: 22:40
+    # call: seoha # outgoing
+    …여보세요? 어, 무슨 일 있어요?
+    # from: me
+    아뇨, 그냥… 마감 잘 하셨나 해서요.
+    ~ raise(aff_seoha, 1)
+    아. 아아, 네. 잘 했어요.
+    # narr
+    (당황한 목소리다. 이 시간의 전화는 보통 안 좋은 소식이니까.)
+    전화는 좀 떨리네요. 다음엔 메시지로 해요 :)
+    # call: end
+    # memo: seoha
+    전화는 떨린다고 했다. 밤에는 메시지가 낫다.
 - -> late
 
 = late
+# time: 23:40
+# post: ian_p2 # from: ian # photo: ian_cg_doodle_light_01
+형광등 고친 기념 낙서
+# post: ian_p2
+수리 기사님 (허락 안 받음)
 # time: 23:48
 # room: ian
 자요?
@@ -320,12 +391,14 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
 형광등 고친 기념 낙서
 {f_d2_slept: -> close}
 * [공구함 든 사람, 설마 저예요? # say: 형광등 표정이 살아 있어요 ㅋㅋ 공구함 든 사람은 설마 저예요?]
-    ~ raise(aff_ian, 6)
+    ~ raise(aff_ian, 5)
     ~ f_ian_eye = true
+    ~ f_d2_doodle_replied = true
     헉 들켰다 ㅋㅋㅋㅋ
     뒷모습은 제대로 그려 준다고 했잖아요. 이건 연습!
 * [잘 그리시네요]
     ~ raise(aff_ian, -2)
+    ~ f_d2_doodle_replied = true
     ㅋㅋ 감사해요
     # typing: 0.8
     잘 자요!
@@ -339,4 +412,4 @@ VAR f_d2_slept = false         // 밤에 일찍 자서 이안의 새벽 메시�
 # note: 3월 10일
 내일은 마침표 쪽이다. 8시 정각.
 # dayend
--> d03_start
+-> d03_morning

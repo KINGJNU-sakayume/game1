@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import Avatar from '../components/Avatar'
 import { store, useGame } from '../engine/store'
-import { ROOMS } from '../story/cast'
-import type { RoomId } from '../story/cast'
+import type { Banner } from '../engine/store'
+import { getApp } from '../apps/registry'
 
 const SHOW_MS = 3500
 /** 이만큼 위로 밀면 숨긴다 (px) */
@@ -11,10 +11,10 @@ const DISMISS_DISTANCE = 30
 const TAP_SLOP = 8
 
 interface Props {
-  onOpen: (room: RoomId, rect: DOMRect) => void
+  onOpen: (banner: Banner, rect: DOMRect) => void
 }
 
-/** 새 메시지 알림 배너 (홈·앱 화면 위). 누르면 그 방으로, 위로 밀면 숨김 */
+/** 새 메시지·앱 알림 배너 (홈·앱 화면 위). 누르면 그 방·앱으로, 위로 밀면 숨김 */
 export default function NotificationBanner({ onOpen }: Props) {
   const banner = useGame((s) => s.banner)
   const [drag, setDrag] = useState(0)
@@ -37,8 +37,8 @@ export default function NotificationBanner({ onOpen }: Props) {
   }, [banner, drag, leaving])
 
   if (!banner) return null
-  const room = ROOMS[banner.room]
   const sender = banner.from === 'me' || banner.from === 'system' ? null : banner.from
+  const app = getApp(banner.app)
 
   function dismiss(id: number) {
     setLeaving(true)
@@ -69,7 +69,7 @@ export default function NotificationBanner({ onOpen }: Props) {
       dismiss(s.id)
     } else if (Math.abs(dy) < TAP_SLOP) {
       store.set({ banner: null })
-      onOpen(banner!.room, e.currentTarget.getBoundingClientRect())
+      onOpen(banner!, e.currentTarget.getBoundingClientRect())
     } else {
       setDrag(0)
     }
@@ -94,17 +94,26 @@ export default function NotificationBanner({ onOpen }: Props) {
         // 키보드(Enter·Space)로 누른 경우. 터치·마우스는 onPointerUp에서 처리
         if (e.detail !== 0) return
         store.set({ banner: null })
-        onOpen(banner.room, e.currentTarget.getBoundingClientRect())
+        onOpen(banner, e.currentTarget.getBoundingClientRect())
       }}
       onPointerCancel={() => {
         start.current = null
         setDrag(0)
       }}
-      aria-label={`${room.name}: ${banner.text}. 누르면 열기, 위로 밀면 숨기기`}
+      aria-label={`${banner.title}: ${banner.text}. 누르면 열기, 위로 밀면 숨기기`}
     >
-      {sender && <Avatar id={sender} size={38} />}
+      {sender ? (
+        <Avatar id={sender} size={38} />
+      ) : (
+        <span className="banner__app" style={{ background: app.color, color: app.fg }}>
+          <app.Icon size={20} aria-hidden />
+        </span>
+      )}
       <span className="banner__main">
-        <span className="banner__title">{room.name}</span>
+        <span className="banner__title">
+          {banner.title}
+          {banner.app !== 'messenger' && <span className="banner__app-name">{app.name}</span>}
+        </span>
         <span className="banner__text">{banner.text}</span>
       </span>
       <span className="banner__grabber" aria-hidden />

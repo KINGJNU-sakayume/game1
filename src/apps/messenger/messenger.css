@@ -419,3 +419,29 @@
   padding: 4px;
   margin: -4px;
 }
+
+/* 사진 보내기 (# attach:) */
+.replies__item--photo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.replies__thumb {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.replies__thumb .story-image {
+  height: 100%;
+  aspect-ratio: auto;
+  font-size: 0;
+}
+
+.replies__thumb .story-image--placeholder svg {
+  width: 18px;
+  height: 18px;
+}

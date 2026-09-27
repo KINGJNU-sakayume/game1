@@ -1,7 +1,8 @@
-// 등장인물과 대화방 목록. 대본의 `# from:` · `# room:` 태그에 쓰는 id가 여기 정의된다.
+// 등장인물과 대화방 목록. 대본의 `# from:` · `# room:` · `# call:` 태그에 쓰는 id가 여기 정의된다.
+// 이 파일은 import 없이 둔다 (scripts/playtest.ts가 그대로 읽는다).
 
 export type HeroineId = 'seoha' | 'ian' | 'daon'
-export type PersonId = HeroineId | 'boss' | 'halmeoni' | 'choi' | 'guard'
+export type PersonId = HeroineId | 'boss' | 'halmeoni' | 'choi' | 'guard' | 'dubu' | 'banjang'
 export type RoomId = 'seoha' | 'ian' | 'daon' | 'boss' | 'dangol'
 /** 메시지 보낸 사람: 등장인물, 주인공(me), 시스템 안내(system) */
 export type SenderId = PersonId | 'me' | 'system'
@@ -14,16 +15,25 @@ export interface Person {
   pfp?: string
   /** 상태 메시지 */
   status?: string
+  /** 전화번호 (가상). 연락처와 모르는 번호 수신 화면에 나온다 */
+  number?: string
+  /** 연락처 앱에 나오는 한 줄 소개 (처음 알게 된 모습) */
+  role?: string
 }
 
+/** 주인공이 새로 받은 번호 = 김 사장님이 30년 쓰던 번호. 끝자리는 가게를 연 해 */
+export const MY_NUMBER = '010-6230-1996'
+
 export const PEOPLE: Record<PersonId, Person> = {
-  seoha: { name: '윤서하', color: 'var(--person-seoha)' },
-  ian: { name: '채이안', color: 'var(--person-ian)' },
-  daon: { name: '김다온', color: 'var(--person-daon)' },
-  boss: { name: '김용수 사장님', color: 'var(--person-boss)' },
-  halmeoni: { name: '박 할머니', color: 'var(--person-halmeoni)' },
-  choi: { name: '최 사장', color: 'var(--person-choi)' },
-  guard: { name: '경비 아저씨', color: 'var(--person-guard)' },
+  seoha: { name: '윤서하', color: 'var(--person-seoha)', number: '010-4715-0303', role: '카페 오후세시 사장' },
+  ian: { name: '채이안', color: 'var(--person-ian)', number: '010-3012-0301', role: '해든빌라 301호 · 윗집' },
+  daon: { name: '김다온', color: 'var(--person-daon)', number: '010-2424-0502', role: '망원 24시 동물의료센터 수의사' },
+  boss: { name: '김용수 사장님', color: 'var(--person-boss)', number: '064-752-1996', role: '만물수선 김씨 · 이 번호의 전 주인' },
+  halmeoni: { name: '박 할머니', color: 'var(--person-halmeoni)', number: '010-3321-1949', role: '망원시장 박씨네 떡집' },
+  choi: { name: '최 사장', color: 'var(--person-choi)', number: '010-5288-9292', role: '망원시장 망원정육' },
+  guard: { name: '경비 아저씨', color: 'var(--person-guard)', number: '02-335-0201', role: '해든빌라 관리실' },
+  dubu: { name: '두부', color: 'var(--person-dubu)', role: '동물의료센터에 사는 치즈 고양이' },
+  banjang: { name: '오반장', color: 'var(--person-banjang)', role: '튜브 「오반장 수리교실」' },
 }
 
 export interface Room {
@@ -51,6 +61,10 @@ export function isRoomId(id: string): id is RoomId {
 
 export function isSenderId(id: string): id is SenderId {
   return id === 'me' || id === 'system' || id in PEOPLE
+}
+
+export function isPersonId(id: string): id is PersonId {
+  return id in PEOPLE
 }
 
 // ───────── 호감 신호 (02_캐릭터_바이블.md) ─────────

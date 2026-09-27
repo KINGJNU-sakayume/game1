@@ -5,11 +5,14 @@ import LockScreen from './phone/LockScreen'
 import HomeScreen from './phone/HomeScreen'
 import AppShell from './phone/AppShell'
 import NotificationBanner from './phone/NotificationBanner'
+import ActivityPill from './phone/ActivityPill'
 import Stage from './phone/Stage'
 import DaySummary from './phone/DaySummary'
+import EndingCard from './phone/EndingCard'
 import MenuSheet from './phone/MenuSheet'
 import { director } from './engine/director'
-import { store, useGame } from './engine/store'
+import { setViewingApp, store, useGame } from './engine/store'
+import type { Banner } from './engine/store'
 import type { RoomId } from './story/cast'
 import { getApp } from './apps/registry'
 import type { AppId } from './apps/registry'
@@ -30,7 +33,7 @@ export default function App() {
   const [openApp, setOpenApp] = useState<OpenApp | null>(null)
   const phoneRef = useRef<HTMLDivElement>(null)
 
-  const onStage = useGame((s) => s.stage !== null || s.summary !== null)
+  const onStage = useGame((s) => s.stage !== null || s.summary !== null || s.finale !== null)
 
   // 화면 바깥 가장자리 색을 현재 화면에 맞춘다 (global.css의 html[data-screen])
   const edge = !profile ? 'setup' : onStage ? 'stage' : openApp ? 'app' : screen
@@ -44,6 +47,12 @@ export default function App() {
     if (playerName) director.start(playerName)
   }, [playerName])
 
+  // 열려 있는 앱을 엔진에 알린다 (그 앱의 알림은 띄우지 않고, 새 소식은 본 것으로)
+  const viewing = screen === 'home' && openApp && !openApp.closing ? openApp.id : null
+  useEffect(() => {
+    setViewingApp(viewing)
+  }, [viewing])
+
   function updateProfile(next: Profile) {
     saveProfile(next)
     setProfile(next)
@@ -55,22 +64,33 @@ export default function App() {
     setScreen('lock')
   }
 
-  function open(id: AppId, iconRect: DOMRect) {
+  function open(id: AppId, rect: DOMRect) {
     const root = phoneRef.current?.getBoundingClientRect()
     const origin = root
       ? {
-          x: iconRect.left + iconRect.width / 2 - root.left,
-          y: iconRect.top + iconRect.height / 2 - root.top,
+          x: rect.left + rect.width / 2 - root.left,
+          y: rect.top + rect.height / 2 - root.top,
         }
       : { x: 0, y: 0 }
+    setScreen('home')
     setOpenApp({ id, origin, closing: false })
+  }
+
+  /** 알림·알약을 눌러 앱으로 (이미 그 앱이 열려 있으면 그대로) */
+  function openAppFrom(id: AppId, rect: DOMRect) {
+    if (openApp?.id === id && !openApp.closing && screen === 'home') return
+    open(id, rect)
   }
 
   /** 알림을 눌러 메신저의 해당 방으로 */
   function openRoom(room: RoomId, rect: DOMRect) {
     store.set({ requestedRoom: room })
-    setScreen('home')
-    if (openApp?.id !== 'messenger' || openApp.closing) open('messenger', rect)
+    if (openApp?.id !== 'messenger' || openApp.closing || screen !== 'home') open('messenger', rect)
+  }
+
+  function openBanner(banner: Banner, rect: DOMRect) {
+    if (banner.room) openRoom(banner.room, rect)
+    else openAppFrom(banner.app, rect)
   }
 
   function close() {
@@ -95,7 +115,7 @@ export default function App() {
   if (!profile || screen === 'setup') {
     content = <SetupScreen onComplete={completeSetup} />
   } else if (screen === 'lock') {
-    content = <LockScreen onUnlock={() => setScreen('home')} onOpenRoom={openRoom} />
+    content = <LockScreen onUnlock={() => setScreen('home')} onOpenRoom={openRoom} onOpenApp={openAppFrom} />
   } else {
     const app = openApp && getApp(openApp.id)
     content = (
@@ -105,6 +125,7 @@ export default function App() {
           <AppShell
             key={openApp.id}
             title={app.name}
+            tone={app.id === 'tube' ? 'dark' : 'default'}
             origin={openApp.origin}
             closing={openApp.closing}
             onClose={close}
@@ -118,7 +139,8 @@ export default function App() {
             />
           </AppShell>
         )}
-        <NotificationBanner onOpen={openRoom} />
+        {openApp && !openApp.closing && <ActivityPill variant="floating" openApp={openApp.id} onOpen={openAppFrom} />}
+        <NotificationBanner onOpen={openBanner} />
       </>
     )
   }
@@ -129,6 +151,7 @@ export default function App() {
       {profile && screen !== 'setup' && <Stage />}
       {profile && screen !== 'setup' && <MenuSheet />}
       {profile && screen !== 'setup' && <DaySummary />}
+      {profile && screen !== 'setup' && <EndingCard />}
     </PhoneFrame>
   )
 }

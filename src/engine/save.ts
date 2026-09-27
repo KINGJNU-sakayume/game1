@@ -6,7 +6,8 @@ import { load, remove, save } from '../state/storage'
 import type { RoomId } from '../story/cast'
 import type { CallRecord, ChatMessage, GameState, Journal, Stage } from './store'
 
-const VERSION = 1
+// 2: 튜브·지도·스냅·망원살이·연락처가 생기며 저장 구조와 대본이 크게 바뀌었다 (이전 저장본은 처음부터)
+export const SAVE_VERSION = 2
 
 export interface Snapshot {
   version: number
@@ -20,7 +21,7 @@ export interface Snapshot {
   /** 대면·통화 중이었다면 그 화면 (M4) */
   stage?: Stage | null
   calls?: CallRecord[]
-  /** 사진첩·캘린더·메모·흐름도 (M5) */
+  /** 사진첩·캘린더·메모·흐름도 (M5), 튜브·지도·스냅·망원살이·연락처 */
   journal?: Journal
   savedAt: number
 }
@@ -28,7 +29,7 @@ export interface Snapshot {
 type DaySaves = Record<string, Snapshot>
 
 function isValid(snapshot: Snapshot | null): snapshot is Snapshot {
-  return !!snapshot && snapshot.version === VERSION && typeof snapshot.ink === 'string'
+  return !!snapshot && snapshot.version === SAVE_VERSION && typeof snapshot.ink === 'string'
 }
 
 export function saveResume(snapshot: Snapshot, messages: ChatMessage[]) {

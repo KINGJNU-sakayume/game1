@@ -1,7 +1,9 @@
 // 게임 진행 상태 저장소. React 밖(연출 엔진)에서도 쓰기 때문에 외부 저장소 + useSyncExternalStore로 만든다.
 import { useSyncExternalStore } from 'react'
-import { ROOMS } from '../story/cast'
+import { PEOPLE, ROOMS } from '../story/cast'
 import type { HeroineId, PersonId, RoomId, SenderId } from '../story/cast'
+import { APP_NAMES } from '../apps/ids'
+import type { AppId } from '../apps/ids'
 
 export interface ChatMessage {
   id: number
@@ -17,6 +19,9 @@ export interface ChatMessage {
   day: number
   time: string
 }
+
+/** 앱 안에서 고르는 선택지의 동작 (05_스크립트_문법.md 2-3장) */
+export type AppAction = 'watch' | 'go' | 'like' | 'comment' | 'reply' | 'text' | 'dial' | 'video' | 'pick'
 
 export interface ChoiceOption {
   index: number
@@ -35,26 +40,38 @@ export interface ChoiceOption {
   decline: boolean
   /** 썼다 지운 말을 메모 앱 "보내지 못한 말"에 남긴다 */
   keep: boolean
+  /** 앱 안에서 고르는 선택이면 그 앱 */
+  app: AppId | null
+  /** 앱 선택의 동작과 대상 (영상·장소·게시물·인물 id) */
+  action: AppAction | null
+  ref: string | null
+  /** 사진 보내기: 사진첩의 사진 이름 */
+  attach: string | null
 }
 
 export interface PendingChoice {
   /**
-   * reply: 방 안의 추천 답장 / open: 어느 방을 먼저 여느냐 / stage: 대면·통화 중 선택 / call: 받기·거절
+   * reply: 방 안의 추천 답장 / open: 어느 방을 먼저 여느냐 / stage: 대면·통화·영상 중 선택 / call: 받기·거절
    * menu: 메시지가 아닌 행동만 있는 선택 (밤의 할 일 등) — 화면 아래 시트로
+   * app: 앱 안에서 고르는 선택 (튜브 영상, 지도 장소, 스냅 게시물 …) — 그 앱 안에 나온다
    */
-  kind: 'reply' | 'open' | 'stage' | 'call' | 'menu'
+  kind: 'reply' | 'open' | 'stage' | 'call' | 'menu' | 'app'
   room: RoomId | null
   options: ChoiceOption[]
-  /** menu 시트 제목 */
+  /** menu 시트 제목 / app 선택의 알림 문구 */
   title?: string
+  /** kind가 app일 때 선택지를 보여 줄 앱 */
+  app?: AppId
 }
 
-/** 대면 장면·통화 화면에 한 줄씩 나오는 대사 */
+/** 대면 장면·통화·영상 화면에 한 줄씩 나오는 대사 */
 export interface StageLine {
   id: number
   /** null이면 서술(주인공의 1인칭 서술·독백) */
   speaker: SenderId | null
   text: string
+  /** 이름표를 직접 정할 때 (영상 자막의 채널 목소리) */
+  label?: string
 }
 
 export interface CallInfo {
@@ -64,11 +81,15 @@ export interface CallInfo {
   state: 'ringing' | 'connecting' | 'connected'
   /** 연결된 시각 (Date.now) */
   startedAt: number | null
+  /** 저장 안 된 번호: 이름 대신 번호가 뜬다 */
+  unknown?: boolean
+  /** 건 전화를 상대가 받지 않는다 (연결 중… 에서 끝난다) */
+  noanswer?: boolean
 }
 
-/** 폰 화면 위를 덮는 무대: 대면 장면 또는 통화 */
+/** 폰 화면 위를 덮는 무대: 대면 장면, 통화, 튜브 영상 */
 export interface Stage {
-  kind: 'scene' | 'call'
+  kind: 'scene' | 'call' | 'video'
   /** 풀스크린 컷 이미지 (cg/ 또는 bg_로 시작하면 backgrounds/) */
   image: string | null
   /** 암전 */
@@ -76,6 +97,8 @@ export interface Stage {
   fx: { type: 'zoom' | 'shake'; key: number } | null
   line: StageLine | null
   call: CallInfo | null
+  /** 재생 중인 튜브 영상 id */
+  video?: string | null
   /** 끝나는 전환 중 */
   ending: boolean
 }
@@ -84,16 +107,24 @@ export interface CallRecord {
   id: number
   who: PersonId
   video: boolean
-  kind: 'incoming' | 'outgoing' | 'declined'
+  /** noanswer: 걸었는데 상대가 받지 않음 */
+  kind: 'incoming' | 'outgoing' | 'declined' | 'missed' | 'noanswer'
   day: number
   time: string
   seconds: number
+  unknown?: boolean
+  /** 부재중 전화를 확인했는지 */
+  seen?: boolean
 }
 
+/** 화면 위에 잠깐 내려오는 알림 */
 export interface Banner {
   id: number
-  room: RoomId
-  from: SenderId
+  app: AppId
+  /** 메신저 알림이면 그 방 */
+  room: RoomId | null
+  from: SenderId | null
+  title: string
   text: string
 }
 
@@ -117,6 +148,15 @@ export interface Plan {
   day: number
   time: string
   title: string
+  /** 취소한 약속 (지우지 않고 줄을 그어 남긴다) */
+  cancelled?: boolean
+}
+
+/** 시각 없는 하루 일정 (축제, 마감일 …) */
+export interface CalEvent {
+  id: string
+  day: number
+  title: string
 }
 
 export interface Note {
@@ -138,28 +178,118 @@ export interface Todo {
 export interface ChoiceRecord {
   day: number
   time: string
-  /** 어디서 고른 선택인지 (방 이름, 대면, 전화 …) */
+  /** 어디서 고른 선택인지 (방 이름, 대면, 전화, 튜브 …) */
   context: string
   options: string[]
   chosen: number
 }
 
-/** 대본이 만드는 기록: 사진첩·캘린더·메모·흐름도. 저장본에 함께 들어간다 */
+export interface WatchedVideo {
+  id: string
+  day: number
+  time: string
+}
+
+export interface Visit {
+  place: string
+  day: number
+  time: string
+  note: string
+}
+
+export interface SnapComment {
+  from: SenderId
+  text: string
+}
+
+export interface SnapPost {
+  id: string
+  from: PersonId
+  photo: string | null
+  text: string
+  day: number
+  time: string
+  liked: boolean
+  comments: SnapComment[]
+  seen: boolean
+  deleted?: boolean
+}
+
+export interface TownComment {
+  author: string
+  text: string
+  mine: boolean
+}
+
+export interface TownPost {
+  id: string
+  category: string
+  author: string
+  title: string
+  body: string[]
+  day: number
+  time: string
+  comments: TownComment[]
+  seen: boolean
+}
+
+export interface Voicemail {
+  id: number
+  who: PersonId
+  day: number
+  time: string
+  lines: string[]
+  heard: boolean
+}
+
+/** 대본이 만드는 기록: 사진첩·캘린더·메모·튜브·지도·스냅·망원살이·연락처. 저장본에 함께 들어간다 */
 export interface Journal {
   photos: SavedPhoto[]
   plans: Plan[]
+  events: CalEvent[]
   notes: Note[]
   todos: Todo[]
   history: ChoiceRecord[]
+  videos: WatchedVideo[]
+  visits: Visit[]
+  /** 지도에 드러난 장소 */
+  pins: string[]
+  /** 지금 있는 곳 */
+  location: string | null
+  posts: SnapPost[]
+  town: TownPost[]
+  /** 연락처의 인물 메모 */
+  memos: Partial<Record<PersonId, string[]>>
+  voicemails: Voicemail[]
+  /** 플레이어가 열어 본 사장님 수첩 쪽 (대본의 read()가 확인한다) */
+  readPages: string[]
 }
 
-export const EMPTY_JOURNAL: Journal = { photos: [], plans: [], notes: [], todos: [], history: [] }
+export const EMPTY_JOURNAL: Journal = {
+  photos: [],
+  plans: [],
+  events: [],
+  notes: [],
+  todos: [],
+  history: [],
+  videos: [],
+  visits: [],
+  pins: [],
+  location: 'home',
+  posts: [],
+  town: [],
+  memos: {},
+  voicemails: [],
+  readPages: [],
+}
 
 export interface GameState {
   clock: { day: number; time: string }
   journal: Journal
   /** 하루 결산 화면 */
   summary: { day: number } | null
+  /** 엔딩 카드 */
+  finale: { id: string } | null
   stats: Stats
   messages: ChatMessage[]
   unread: Partial<Record<RoomId, number>>
@@ -170,6 +300,8 @@ export interface GameState {
   composing: { room: RoomId; text: string } | null
   /** 지금 화면에 열려 있는 대화방 */
   viewingRoom: RoomId | null
+  /** 지금 열려 있는 앱 (알림을 띄울지 정할 때 쓴다) */
+  viewingApp: AppId | null
   banner: Banner | null
   /** 알림을 눌러 열어야 할 방 */
   requestedRoom: RoomId | null
@@ -178,9 +310,10 @@ export interface GameState {
 }
 
 export const INITIAL_STATE: GameState = {
-  clock: { day: 1, time: '08:12' },
+  clock: { day: 1, time: '07:40' },
   journal: EMPTY_JOURNAL,
   summary: null,
+  finale: null,
   stats: { aff: { seoha: 0, ian: 0, daon: 0 }, skill: 0 },
   messages: [],
   unread: {},
@@ -188,6 +321,7 @@ export const INITIAL_STATE: GameState = {
   choice: null,
   composing: null,
   viewingRoom: null,
+  viewingApp: null,
   banner: null,
   requestedRoom: null,
   stage: null,
@@ -240,9 +374,23 @@ export function pushMessage(message: Omit<ChatMessage, 'id' | 'day' | 'time'>) {
       banner:
         seen || message.from === 'system'
           ? s.banner
-          : { id: nextBannerId++, room: message.room, from: message.from, text: previewText(full) },
+          : {
+              id: nextBannerId++,
+              app: 'messenger',
+              room: message.room,
+              from: message.from,
+              title: ROOMS[message.room].name,
+              text: previewText(full),
+            },
     }
   })
+}
+
+/** 메신저 말고 다른 앱의 알림. 그 앱을 보고 있으면 띄우지 않는다 */
+export function notify(app: AppId, text: string, from: SenderId | null = null, title: string = APP_NAMES[app]) {
+  store.set((s) =>
+    s.viewingApp === app ? {} : { banner: { id: nextBannerId++, app, room: null, from, title, text } },
+  )
 }
 
 export function updateJournal(update: (j: Journal) => Partial<Journal>) {
@@ -256,6 +404,11 @@ export function savePhoto(name: string, from: SenderId | null) {
       ? {}
       : { photos: [...j.photos, { name, from, day: state.clock.day, time: state.clock.time }] },
   )
+}
+
+/** 사장님 수첩의 그 쪽을 열어 봤다 */
+export function markPageRead(title: string) {
+  updateJournal((j) => (j.readPages.includes(title) ? {} : { readPages: [...j.readPages, title] }))
 }
 
 export function setStage(update: Partial<Stage> | null) {
@@ -286,6 +439,23 @@ export function setViewingRoom(room: RoomId | null) {
   }))
 }
 
+/** 앱을 열면 그 앱의 새 소식은 본 것으로 친다 */
+export function setViewingApp(app: AppId | null) {
+  store.set((s) => {
+    const patch: Partial<GameState> = { viewingApp: app }
+    if (app && s.banner?.app === app && app !== 'messenger') patch.banner = null
+    const j = s.journal
+    if (app === 'snap' && j.posts.some((p) => !p.seen)) {
+      patch.journal = { ...j, posts: j.posts.map((p) => (p.seen ? p : { ...p, seen: true })) }
+    } else if (app === 'town' && j.town.some((p) => !p.seen)) {
+      patch.journal = { ...j, town: j.town.map((p) => (p.seen ? p : { ...p, seen: true })) }
+    } else if (app === 'call' && s.calls.some((c) => c.kind === 'missed' && !c.seen)) {
+      patch.calls = s.calls.map((c) => (c.kind === 'missed' && !c.seen ? { ...c, seen: true } : c))
+    }
+    return patch
+  })
+}
+
 export function previewText(message: Pick<ChatMessage, 'text' | 'photo'>): string {
   if (message.photo) return message.text ? `사진: ${message.text}` : '사진을 보냈습니다.'
   return message.text
@@ -293,4 +463,25 @@ export function previewText(message: Pick<ChatMessage, 'text' | 'photo'>): strin
 
 export function totalUnread(s: GameState): number {
   return Object.values(s.unread).reduce<number>((sum, n) => sum + (n ?? 0), 0)
+}
+
+/** 홈 화면 아이콘의 빨간 숫자 */
+export function appBadge(s: GameState, app: AppId): number {
+  switch (app) {
+    case 'messenger':
+      return totalUnread(s)
+    case 'call':
+      return s.calls.filter((c) => c.kind === 'missed' && !c.seen).length + s.journal.voicemails.filter((v) => !v.heard).length
+    case 'snap':
+      return s.journal.posts.filter((p) => !p.seen && !p.deleted).length
+    case 'town':
+      return s.journal.town.filter((p) => !p.seen).length
+    default:
+      return 0
+  }
+}
+
+/** 전화 앱 등에서 이름 대신 번호를 보여 줄 때 */
+export function callerName(who: PersonId, unknown?: boolean): string {
+  return unknown ? (PEOPLE[who].number ?? '알 수 없는 번호') : PEOPLE[who].name
 }

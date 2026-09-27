@@ -1,4 +1,4 @@
-// 연출 엔진: ink 대본을 한 줄씩 읽어 태그대로 메시지·입력 중 표시·추천 답장을 보여준다.
+// 연출 엔진: ink 대본을 한 줄씩 읽어 태그대로 메시지·입력 중 표시·추천 답장·앱 기록을 보여준다.
 // 문법은 docs/05_스크립트_문법.md 참조.
 import { Story } from 'inkjs'
 import storyData from '../../story/main.ink'
@@ -10,17 +10,36 @@ import {
   ROOMS,
   affectionStage,
   isHeroine,
+  isPersonId,
   isRoomId,
   isSenderId,
 } from '../story/cast'
 import type { HeroineId, PersonId, RoomId, SenderId } from '../story/cast'
-import { load, loadSettings, save } from '../state/storage'
-import { EMPTY_JOURNAL, hasUnreadMine, markRead, pushMessage, savePhoto, setStage, store, syncMessageIds, updateJournal } from './store'
-import type { CallRecord, ChoiceOption, Note, PendingChoice, Stats } from './store'
-import { loadResume, rewindTo, saveDay, saveResume } from './save'
+import { isPlaceId } from '../story/places'
+import { VIDEOS, isVideoId } from '../story/videos'
+import { findEnding } from '../story/endings'
+import { APP_NAMES } from '../apps/ids'
+import type { AppId } from '../apps/ids'
+import { load, loadProfile, loadSettings, save } from '../state/storage'
+import {
+  EMPTY_JOURNAL,
+  hasUnreadMine,
+  markRead,
+  notify,
+  pushMessage,
+  savePhoto,
+  setStage,
+  store,
+  syncMessageIds,
+  updateJournal,
+} from './store'
+import type { AppAction, CallRecord, ChoiceOption, Journal, Note, PendingChoice, Stats } from './store'
+import { SAVE_VERSION, loadResume, rewindTo, saveDay, saveResume } from './save'
 import type { Snapshot } from './save'
 
 const SPEED = { slow: 1.6, normal: 1, fast: 0.5 } as const
+/** D1~D14. 에필로그(날짜를 건너뛴 엔딩)는 날짜 선택 지점을 남기지 않는다 */
+const GAME_DAYS = 14
 
 class Cancelled extends Error {}
 
@@ -36,6 +55,41 @@ export function parseTags(tags: string[] | null): Tags {
   }
   return out
 }
+
+/**
+ * 태그만 있는 줄은 ink가 다음 대사 줄에 몰아서 붙인다. 그래서 한 줄에 같은 태그가 두 번 올 수 있다
+ * (앞 장면의 "# call: end"와 다음 장면의 "# call: ian"). 같은 이름이 다시 나오는 자리에서 끊어,
+ * 앞 묶음부터 차례로 처리한다
+ */
+export function splitTagBatches(tags: string[] | null): string[][] {
+  const batches: string[][] = [[]]
+  let keys = new Set<string>()
+  for (const raw of tags ?? []) {
+    const i = raw.indexOf(':')
+    const key = (i < 0 ? raw : raw.slice(0, i)).trim().toLowerCase()
+    if (keys.has(key)) {
+      batches.push([])
+      keys = new Set()
+    }
+    keys.add(key)
+    batches[batches.length - 1].push(raw)
+  }
+  return batches
+}
+
+/** 선택지 태그 → 앱 선택 (05_스크립트_문법.md 2-3장) */
+const APP_TAGS: { tag: string; app: AppId; action: AppAction }[] = [
+  { tag: 'watch', app: 'tube', action: 'watch' },
+  { tag: 'go', app: 'map', action: 'go' },
+  { tag: 'like', app: 'snap', action: 'like' },
+  { tag: 'comment', app: 'snap', action: 'comment' },
+  { tag: 'town', app: 'town', action: 'reply' },
+  { tag: 'text', app: 'call', action: 'text' },
+  { tag: 'dial', app: 'call', action: 'dial' },
+  { tag: 'facetime', app: 'call', action: 'video' },
+]
+
+const APP_IDS = Object.keys(APP_NAMES) as AppId[]
 
 function warn(message: string) {
   if (import.meta.env.DEV) console.warn(`[대본] ${message}`)
@@ -57,14 +111,18 @@ let pendingKind: PendingChoice['kind'] = 'reply'
 let pendingContext = ''
 let pendingOptions: ChoiceOption[] = []
 let summaryResolve: (() => void) | null = null
-/** # ask: 로 정한 다음 menu 선택지의 제목 */
+let finaleResolve: (() => void) | null = null
+/** # ask: 로 정한 다음 menu·app 선택지의 제목 */
 let pendingAsk: string | null = null
 let cleanupChoice: (() => void) | null = null
 /** 대면·통화 대사에서 탭을 기다리는 중 */
 let advanceResolve: (() => void) | null = null
 let nextLineId = 1
 let nextCallId = 1
+let nextVoicemailId = 1
 let fxKey = 0
+/** 바로 앞 줄이 음성사서함이었는지 (이어지는 줄을 한 메시지로 묶는다) */
+let lastVoicemail: number | null = null
 
 function sleep(seconds: number, gen: number, scaled = true): Promise<void> {
   const factor = scaled ? SPEED[loadSettings().textSpeed] : 1
@@ -103,7 +161,7 @@ function snapshot(): Snapshot {
     stage: s.stage && !s.stage.ending ? s.stage : null,
     calls: s.calls,
     journal: s.journal,
-    version: 1,
+    version: SAVE_VERSION,
     day: s.clock.day,
     ink: story!.state.ToJson(),
     messageCount: s.messages.length,
@@ -112,10 +170,6 @@ function snapshot(): Snapshot {
     room: currentRoom,
     savedAt: Date.now(),
   }
-}
-
-function isPerson(id: string): id is PersonId {
-  return isSenderId(id) && id !== 'me' && id !== 'system'
 }
 
 /** 대면·통화 중 탭을 기다린다 */
@@ -134,9 +188,18 @@ async function startScene(image: string | null, gen: number) {
   // 폰 화면이 꺼지듯 어두워진 뒤 컷이 나타난다 (연출 시간은 텍스트 속도와 무관)
   store.set({
     banner: null,
-    stage: { kind: 'scene', image, black: false, fx: null, line: null, call: null, ending: false },
+    stage: { kind: 'scene', image, black: false, fx: null, line: null, call: null, video: null, ending: false },
   })
   await sleep(1.0, gen, false)
+}
+
+async function startVideo(id: string, gen: number) {
+  if (!isVideoId(id)) warn(`알 수 없는 영상: ${id}`)
+  store.set({
+    banner: null,
+    stage: { kind: 'video', image: null, black: false, fx: null, line: null, call: null, video: id, ending: false },
+  })
+  await sleep(0.5, gen, false)
 }
 
 async function endStage(gen: number) {
@@ -156,11 +219,20 @@ function recordCall(kind: CallRecord['kind']) {
   const call = s.stage?.call
   if (!call) return
   const seconds = call.startedAt ? Math.round((Date.now() - call.startedAt) / 1000) : 0
-  const record: CallRecord = { id: nextCallId++, who: call.who, video: call.video, kind, day: s.clock.day, time: s.clock.time, seconds }
+  const record: CallRecord = {
+    id: nextCallId++,
+    who: call.who,
+    video: call.video,
+    kind,
+    day: s.clock.day,
+    time: s.clock.time,
+    seconds,
+    ...(call.unknown ? { unknown: true } : {}),
+  }
   store.set({ calls: [...s.calls, record] })
 }
 
-async function startCall(who: PersonId, video: boolean, outgoing: boolean, gen: number) {
+async function startCall(who: PersonId, video: boolean, outgoing: boolean, unknown: boolean, noanswer: boolean, gen: number) {
   store.set({
     banner: null,
     stage: {
@@ -169,31 +241,52 @@ async function startCall(who: PersonId, video: boolean, outgoing: boolean, gen: 
       black: false,
       fx: null,
       line: null,
-      call: { who, video, outgoing, state: outgoing ? 'connecting' : 'ringing', startedAt: null },
+      call: {
+        who,
+        video,
+        outgoing,
+        state: outgoing ? 'connecting' : 'ringing',
+        startedAt: null,
+        ...(unknown ? { unknown } : {}),
+        ...(noanswer ? { noanswer } : {}),
+      },
+      video: null,
       ending: false,
     },
   })
   if (outgoing) {
     await sleep(1.8, gen, false)
-    connectCall()
+    if (!noanswer) connectCall()
   }
 }
 
-/** 대면·통화 무대의 연출 태그 */
-async function handleStageTags(tags: Tags, gen: number) {
-  if (tags.scene !== undefined) {
-    if (tags.scene === 'end') await endStage(gen)
-    else await startScene(tags.scene || null, gen)
+/** 무대를 닫는 태그 (# scene: end · # call: end · # play: end) */
+async function handleEndTags(tags: Tags, gen: number) {
+  if (tags.scene === 'end') await endStage(gen)
+  if (tags.play === 'end' && store.get().stage?.kind === 'video') await endStage(gen)
+  if (tags.call === 'end') {
+    const call = store.get().stage?.call
+    if (call) {
+      recordCall(call.state !== 'connected' && call.outgoing ? 'noanswer' : call.outgoing ? 'outgoing' : 'incoming')
+      await endStage(gen)
+    }
   }
-  if (tags.call !== undefined) {
-    if (tags.call === 'end') {
-      const call = store.get().stage?.call
-      if (call) {
-        recordCall(call.outgoing ? 'outgoing' : 'incoming')
-        await endStage(gen)
-      }
-    } else if (isPerson(tags.call)) {
-      await startCall(tags.call, tags.video !== undefined, tags.outgoing !== undefined, gen)
+}
+
+/** 대면·통화·영상 무대의 연출 태그 (닫는 태그는 handleEndTags가 먼저 처리했다) */
+async function handleStageTags(tags: Tags, gen: number) {
+  if (tags.scene !== undefined && tags.scene !== 'end') await startScene(tags.scene || null, gen)
+  if (tags.play !== undefined && tags.play !== 'end') await startVideo(tags.play, gen)
+  if (tags.call !== undefined && tags.call !== 'end') {
+    if (isPersonId(tags.call)) {
+      await startCall(
+        tags.call,
+        tags.video !== undefined,
+        tags.outgoing !== undefined,
+        tags.unknown !== undefined,
+        tags.noanswer !== undefined,
+        gen,
+      )
     } else warn(`알 수 없는 call: ${tags.call}`)
   }
   if (!store.get().stage) return
@@ -224,18 +317,36 @@ function appendNote(kind: Note['kind'], title: string, text: string) {
   })
 }
 
-/** 사진첩·캘린더·메모 태그. 이 줄이 메모로 쓰였으면 true (메신저·무대에 나오지 않음) */
-function handleJournalTags(text: string, tags: Tags): boolean {
+/** 대본에서 글쓴이를 "나"로 쓰면 주인공 이름 */
+function authorName(author: string): { author: string; mine: boolean } {
+  if (author === '나' || author === 'me') return { author: loadProfile()?.name ?? '나', mine: true }
+  return { author, mine: false }
+}
+
+function revealPin(j: Journal, place: string): Partial<Journal> {
+  return j.pins.includes(place) ? {} : { pins: [...j.pins, place] }
+}
+
+/** 캘린더·지도 태그 (줄은 그대로 화면에 나온다) */
+function handlePlanTags(text: string, tags: Tags) {
+  const { day, time } = store.get().clock
   if (tags.gallery) savePhoto(tags.gallery, null)
   if (tags.plan !== undefined) {
-    const [id, dayText, time, ...rest] = splitArgs(tags.plan)
-    const day = Number.parseInt(dayText, 10)
-    if (id && day > 0 && /^\d{1,2}:\d{2}$/.test(time ?? '')) {
-      const plan = { id, day, time: time.padStart(5, '0'), title: rest.join(', ') || id }
+    const [id, dayText, planTime, ...rest] = splitArgs(tags.plan)
+    const planDay = Number.parseInt(dayText, 10)
+    if (id && planDay > 0 && /^\d{1,2}:\d{2}$/.test(planTime ?? '')) {
+      const plan = { id, day: planDay, time: planTime.padStart(5, '0'), title: rest.join(', ') || id }
       updateJournal((j) => ({ plans: [...j.plans.filter((p) => p.id !== id), plan] }))
     } else warn(`잘못된 plan: ${tags.plan} (형식: id, 날짜, HH:MM, 제목)`)
   }
-  if (tags.unplan) updateJournal((j) => ({ plans: j.plans.filter((p) => p.id !== tags.unplan) }))
+  if (tags.unplan) updateJournal((j) => ({ plans: j.plans.map((p) => (p.id === tags.unplan ? { ...p, cancelled: true } : p)) }))
+  if (tags.event !== undefined) {
+    const [id, dayText, ...rest] = splitArgs(tags.event)
+    const eventDay = Number.parseInt(dayText, 10)
+    if (id && eventDay > 0) {
+      updateJournal((j) => ({ events: [...j.events.filter((e) => e.id !== id), { id, day: eventDay, title: rest.join(', ') || id }] }))
+    } else warn(`잘못된 event: ${tags.event} (형식: id, 날짜, 제목)`)
+  }
   if (tags.todo !== undefined) {
     const [id, ...rest] = splitArgs(tags.todo)
     const todoText = rest.join(', ') || text
@@ -243,12 +354,140 @@ function handleJournalTags(text: string, tags: Tags): boolean {
     else warn(`잘못된 todo: ${tags.todo} (형식: id, 내용)`)
   }
   if (tags.done) updateJournal((j) => ({ todos: j.todos.map((t) => (t.id === tags.done ? { ...t, done: true } : t)) }))
-  if (text && tags.note !== undefined) {
+  if (tags.pin !== undefined) {
+    for (const place of splitArgs(tags.pin)) {
+      if (isPlaceId(place)) updateJournal((j) => revealPin(j, place))
+      else warn(`알 수 없는 장소: ${place}`)
+    }
+  }
+  if (tags.unpin !== undefined) {
+    const gone = splitArgs(tags.unpin)
+    updateJournal((j) => ({ pins: j.pins.filter((p) => !gone.includes(p)) }))
+  }
+  if (tags.at !== undefined) {
+    const [place, ...rest] = splitArgs(tags.at)
+    if (isPlaceId(place)) {
+      updateJournal((j) => ({
+        ...revealPin(j, place),
+        location: place,
+        visits: [...j.visits, { place, day, time, note: rest.join(', ') }],
+      }))
+    } else warn(`알 수 없는 장소: ${place}`)
+  }
+  if (tags.missed !== undefined) {
+    if (isPersonId(tags.missed)) {
+      const record: CallRecord = {
+        id: nextCallId++,
+        who: tags.missed,
+        video: tags.video !== undefined,
+        kind: 'missed',
+        day,
+        time,
+        seconds: 0,
+        ...(tags.unknown !== undefined ? { unknown: true } : {}),
+        seen: store.get().viewingApp === 'call',
+      }
+      store.set((s) => ({ calls: [...s.calls, record] }))
+      const name = tags.unknown !== undefined ? (PEOPLE[tags.missed].number ?? '알 수 없는 번호') : PEOPLE[tags.missed].name
+      notify('call', `${name} · ${record.video ? '영상통화' : '음성통화'}`, tags.unknown !== undefined ? null : tags.missed, '부재중 전화')
+    } else warn(`알 수 없는 missed: ${tags.missed}`)
+  }
+}
+
+/** 메신저가 아니라 앱 기록으로 가는 줄 (메모·수첩·연락처·스냅·망원살이·음성사서함). 쓰였으면 true */
+function handleRecordLine(text: string, tags: Tags): boolean {
+  const { day, time } = store.get().clock
+  const voicemailBefore = lastVoicemail
+  lastVoicemail = null
+  if (!text) return false
+
+  if (tags.note !== undefined) {
     appendNote('note', tags.note || '메모', text)
     return true
   }
-  if (text && tags.page !== undefined) {
+  if (tags.page !== undefined) {
     appendNote('page', tags.page || '수첩', text)
+    return true
+  }
+  if (tags.memo !== undefined) {
+    const who = tags.memo
+    if (isPersonId(who)) updateJournal((j) => ({ memos: { ...j.memos, [who]: [...(j.memos[who] ?? []), text] } }))
+    else warn(`알 수 없는 memo: ${who}`)
+    return true
+  }
+  if (tags.voicemail !== undefined) {
+    const who = tags.voicemail
+    if (!isPersonId(who)) {
+      warn(`알 수 없는 voicemail: ${who}`)
+      return true
+    }
+    const last = store.get().journal.voicemails.at(-1)
+    if (voicemailBefore !== null && last && last.id === voicemailBefore && last.who === who) {
+      updateJournal((j) => ({ voicemails: j.voicemails.map((v) => (v.id === last.id ? { ...v, lines: [...v.lines, text] } : v)) }))
+      lastVoicemail = last.id
+    } else {
+      const id = nextVoicemailId++
+      updateJournal((j) => ({ voicemails: [...j.voicemails, { id, who, day, time, lines: [text], heard: false }] }))
+      lastVoicemail = id
+      notify('call', `${PEOPLE[who].name} · 새 음성 메시지`, who, '음성사서함')
+    }
+    return true
+  }
+  if (tags.post !== undefined) {
+    const id = tags.post
+    const existing = store.get().journal.posts.find((p) => p.id === id)
+    if (existing) {
+      updateJournal((j) => ({ posts: j.posts.map((p) => (p.id === id ? { ...p, text: `${p.text}\n${text}` } : p)) }))
+      return true
+    }
+    const from = tags.from
+    if (!from || !isPersonId(from)) {
+      warn(`스냅 게시물(${id})에 # from: 인물이 없습니다`)
+      return true
+    }
+    const seen = store.get().viewingApp === 'snap'
+    updateJournal((j) => ({
+      posts: [...j.posts, { id, from, photo: tags.photo || null, text, day, time, liked: false, comments: [], seen }],
+    }))
+    notify('snap', `${PEOPLE[from].name} · 새 게시물`, from)
+    return true
+  }
+  if (tags.comment !== undefined) {
+    const id = tags.comment
+    const from = tags.from && isSenderId(tags.from) ? tags.from : null
+    if (!from) warn(`스냅 댓글(${id})에 # from: 이 없습니다`)
+    else if (!store.get().journal.posts.some((p) => p.id === id)) warn(`없는 스냅 게시물에 댓글: ${id}`)
+    else updateJournal((j) => ({ posts: j.posts.map((p) => (p.id === id ? { ...p, comments: [...p.comments, { from, text }] } : p)) }))
+    return true
+  }
+  if (tags.town !== undefined) {
+    const [id, category, author] = splitArgs(tags.town)
+    const existing = store.get().journal.town.find((p) => p.id === id)
+    if (existing) {
+      updateJournal((j) => ({ town: j.town.map((p) => (p.id === id ? { ...p, body: [...p.body, text] } : p)) }))
+      return true
+    }
+    if (!category || !author) {
+      warn(`망원살이 글(${id})은 처음에 "# town: id, 분류, 글쓴이"로 써야 합니다`)
+      return true
+    }
+    const who = authorName(author)
+    const seen = who.mine || store.get().viewingApp === 'town'
+    updateJournal((j) => ({
+      town: [...j.town, { id, category, author: who.author, title: text, body: [], day, time, comments: [], seen }],
+    }))
+    if (!who.mine) notify('town', `${category} · ${text}`)
+    return true
+  }
+  if (tags.townreply !== undefined) {
+    const [id, author] = splitArgs(tags.townreply)
+    if (!store.get().journal.town.some((p) => p.id === id)) warn(`없는 망원살이 글에 댓글: ${id}`)
+    else {
+      const who = authorName(author || '이웃')
+      updateJournal((j) => ({
+        town: j.town.map((p) => (p.id === id ? { ...p, comments: [...p.comments, { author: who.author, text, mine: who.mine }] } : p)),
+      }))
+    }
     return true
   }
   return false
@@ -262,7 +501,18 @@ function showSummary(gen: number): Promise<void> {
   })
 }
 
-/** 대면·통화 중 대사 한 줄: 탭하면 넘어간다 */
+/** 엔딩 카드를 띄우고 본 엔딩으로 기록한다 */
+function showFinale(id: string, gen: number): Promise<void> {
+  if (!findEnding(id)) warn(`알 수 없는 엔딩: ${id}`)
+  const seen = load<string[]>('endings', [])
+  if (!seen.includes(id)) save('endings', [...seen, id])
+  store.set({ finale: { id }, banner: null })
+  return new Promise((resolve, reject) => {
+    finaleResolve = () => (gen === generation ? resolve() : reject(new Cancelled()))
+  })
+}
+
+/** 대면·통화·영상 중 대사 한 줄: 탭하면 넘어간다 */
 async function stageLine(text: string, tags: Tags, gen: number) {
   const stage = store.get().stage!
   if (stage.call?.state === 'ringing') {
@@ -270,11 +520,18 @@ async function stageLine(text: string, tags: Tags, gen: number) {
     connectCall()
   }
   let speaker: SenderId | null = stage.kind === 'call' ? stage.call!.who : null
+  let label: string | undefined
+  if (stage.kind === 'video' && stage.video && isVideoId(stage.video)) label = VIDEOS[stage.video].host
   if (tags.from !== undefined) {
+    label = undefined
     if (isSenderId(tags.from)) speaker = tags.from === 'system' ? null : tags.from
     else warn(`알 수 없는 from: ${tags.from}`)
   }
-  setStage({ line: { id: nextLineId++, speaker, text } })
+  if (tags.narr !== undefined) {
+    speaker = null
+    label = undefined
+  }
+  setStage({ line: { id: nextLineId++, speaker, text, ...(label ? { label } : {}) } })
   // 바로 뒤에 선택지가 오면 탭을 기다리지 않고 선택지를 함께 보여준다
   if (!story!.canContinue && story!.currentChoices.length > 0) return
   await waitAdvance(gen)
@@ -291,16 +548,18 @@ function resolveSender(tag: string | undefined, room: RoomId): SenderId {
   return 'system'
 }
 
-/** 한 줄을 처리한다. 날짜가 바뀌었으면 true */
+/** 한 줄을 처리한다. 날짜 시작 지점으로 저장해야 하면 true */
 async function handleLine(text: string, tags: Tags, gen: number): Promise<boolean> {
-  // 하루 결산은 같은 줄의 # day: 보다 먼저 (태그만 있는 줄은 다음 날 첫 줄에 붙기 때문)
+  // 태그만 있는 줄은 다음 대사 줄에 붙는다. 그래서 순서를 정해 둔다:
+  // 앞 장면을 닫는 태그 → 하루 결산 → 다음 날짜·시각 → 새 장면
+  await handleEndTags(tags, gen)
   if (tags.dayend !== undefined) await showSummary(gen)
   let newDay = false
   if (tags.day !== undefined) {
     const day = Number.parseInt(tags.day, 10)
     if (day > 0) {
       // 처음 시작한 대본의 첫 날짜도 시작 지점으로 남긴다
-      newDay = day !== store.get().clock.day || store.get().messages.length === 0
+      newDay = day <= GAME_DAYS && (day !== store.get().clock.day || store.get().messages.length === 0)
       store.set((s) => ({ clock: { ...s.clock, day } }))
     } else warn(`잘못된 day: ${tags.day}`)
   }
@@ -314,8 +573,10 @@ async function handleLine(text: string, tags: Tags, gen: number): Promise<boolea
   }
   if (tags.wait !== undefined) await sleep(Number.parseFloat(tags.wait) || 0, gen)
   await handleStageTags(tags, gen)
-  const consumed = handleJournalTags(text, tags)
+  handlePlanTags(text, tags)
+  const consumed = handleRecordLine(text, tags)
   if (tags.ask) pendingAsk = tags.ask
+  if (tags.ending) await showFinale(tags.ending, gen)
 
   if (!text || consumed) return newDay
   if (lastChosen !== null && text === lastChosen && tags.from === undefined) {
@@ -360,6 +621,24 @@ async function handleLine(text: string, tags: Tags, gen: number): Promise<boolea
   return newDay
 }
 
+/** 선택지 태그에서 앱 선택을 읽는다 */
+function readAppTags(t: Tags): Pick<ChoiceOption, 'app' | 'action' | 'ref'> {
+  for (const { tag, app, action } of APP_TAGS) {
+    if (t[tag] === undefined) continue
+    const ref = t[tag]
+    if (app === 'tube' && !isVideoId(ref)) warn(`알 수 없는 영상: ${ref}`)
+    if (app === 'map' && !isPlaceId(ref)) warn(`알 수 없는 장소: ${ref}`)
+    if (app === 'call' && !isPersonId(ref)) warn(`알 수 없는 인물: ${ref}`)
+    return { app, action, ref }
+  }
+  if (t.in !== undefined) {
+    const app = t.in as AppId
+    if (APP_IDS.includes(app)) return { app, action: 'pick', ref: t.ref || null }
+    warn(`알 수 없는 앱: ${t.in}`)
+  }
+  return { app: null, action: null, ref: null }
+}
+
 function askChoice(): Promise<ChoiceOption> {
   const options: ChoiceOption[] = story!.currentChoices.map((choice) => {
     const t = parseTags(choice.tags)
@@ -375,9 +654,13 @@ function askChoice(): Promise<ChoiceOption> {
       answer: t.answer !== undefined,
       decline: t.decline !== undefined,
       keep: t.keep !== undefined,
+      attach: t.attach || null,
+      ...readAppTags(t),
     }
   })
   const stage = store.get().stage
+  const apps = [...new Set(options.map((o) => o.app).filter((a): a is AppId => a !== null))]
+  if (apps.length > 1) warn(`한 선택지 묶음에 앱이 여러 개입니다: ${apps.join(', ')}`)
   const kind: PendingChoice['kind'] =
     stage?.call?.state === 'ringing' && options.some((o) => o.answer || o.decline)
       ? 'call'
@@ -385,10 +668,13 @@ function askChoice(): Promise<ChoiceOption> {
         ? 'stage'
         : options.every((o) => o.openRoom)
           ? 'open'
-          : options.every((o) => o.act)
-            ? 'menu'
-            : 'reply'
-  const title = kind === 'menu' ? (pendingAsk ?? '무엇을 할까?') : undefined
+          : apps.length === 1
+            ? 'app'
+            : options.every((o) => o.act) || apps.length > 1
+              ? 'menu'
+              : 'reply'
+  const app = kind === 'app' ? apps[0] : undefined
+  const title = kind === 'menu' ? (pendingAsk ?? '무엇을 할까?') : kind === 'app' ? (pendingAsk ?? undefined) : undefined
   pendingAsk = null
   pendingKind = kind
   pendingOptions = options
@@ -398,7 +684,8 @@ function askChoice(): Promise<ChoiceOption> {
     menu: title ?? '',
     open: '먼저 연 대화방',
     call: `${who} 전화`,
-    stage: stage?.kind === 'call' ? `${who} 통화` : '대면',
+    stage: stage?.kind === 'call' ? `${who} 통화` : stage?.kind === 'video' ? '영상' : '대면',
+    app: app ? (title ? `${APP_NAMES[app]} · ${title}` : APP_NAMES[app]) : '',
   }
   pendingContext = contexts[kind]
   // 선택지 앞은 다시 불러와도 똑같이 이어지는 지점이므로 여기서 이어하기 저장
@@ -406,7 +693,7 @@ function askChoice(): Promise<ChoiceOption> {
 
   return new Promise((resolve) => {
     pendingResolve = resolve
-    store.set({ choice: { kind, room: kind === 'reply' ? currentRoom : null, options, title } })
+    store.set({ choice: { kind, room: kind === 'reply' ? currentRoom : null, options, title, ...(app ? { app } : {}) } })
     if (kind === 'open') {
       // 먼저 연 방이 곧 선택이다
       const check = () => {
@@ -440,6 +727,12 @@ async function eraseFrom(room: RoomId, text: string, gen: number) {
 
 async function sendChoice(option: ChoiceOption, room: RoomId, gen: number) {
   if (option.act || option.openRoom) return
+  if (option.attach) {
+    // 사진 보내기: 입력창을 거치지 않고 사진이 올라간다
+    await sleep(0.4, gen)
+    pushMessage({ room, from: 'me', text: option.say ?? '', photo: option.attach })
+    return
+  }
   const text = option.say ?? option.label
   try {
     if (option.draft) {
@@ -471,6 +764,39 @@ async function stageChoice(option: ChoiceOption, gen: number) {
   }
 }
 
+/** 앱 안에서 고른 선택지의 결과를 그 앱의 기록에 남긴다 */
+function appChoice(option: ChoiceOption) {
+  const { day, time } = store.get().clock
+  const ref = option.ref
+  if (!ref) return
+  switch (option.action) {
+    case 'watch':
+      updateJournal((j) => ({ videos: [...j.videos.filter((v) => v.id !== ref), { id: ref, day, time }] }))
+      break
+    case 'go':
+      if (isPlaceId(ref)) updateJournal((j) => ({ ...revealPin(j, ref), location: ref }))
+      break
+    case 'like':
+      updateJournal((j) => ({ posts: j.posts.map((p) => (p.id === ref ? { ...p, liked: true } : p)) }))
+      break
+    case 'comment': {
+      const text = option.say ?? option.label
+      updateJournal((j) => ({ posts: j.posts.map((p) => (p.id === ref ? { ...p, comments: [...p.comments, { from: 'me', text }] } : p)) }))
+      break
+    }
+    case 'reply': {
+      const text = option.say ?? option.label
+      const author = loadProfile()?.name ?? '나'
+      updateJournal((j) => ({
+        town: j.town.map((p) => (p.id === ref ? { ...p, comments: [...p.comments, { author, text, mine: true }] } : p)),
+      }))
+      break
+    }
+    default:
+      break
+  }
+}
+
 /** 흐름도용 선택 기록 + 지금까지 한 번이라도 고른 선택 (날짜 선택으로 되돌려도 남는다) */
 function recordChoice(option: ChoiceOption, options: ChoiceOption[]) {
   const { day, time } = store.get().clock
@@ -488,7 +814,10 @@ async function run(gen: number) {
       if (story.canContinue) {
         const text = (story.Continue() ?? '').trim()
         syncStats()
-        const newDay = await handleLine(text, parseTags(story.currentTags), gen)
+        const batches = splitTagBatches(story.currentTags)
+        let newDay = false
+        for (const early of batches.slice(0, -1)) newDay = (await handleLine('', parseTags(early), gen)) || newDay
+        newDay = (await handleLine(text, parseTags(batches[batches.length - 1]), gen)) || newDay
         // 줄이 끝난 지점은 다시 불러와도 똑같이 이어지므로 매 줄 이어하기 저장
         if (gen === generation) (newDay ? saveDay : saveResume)(snapshot(), store.get().messages)
       } else if (story.currentChoices.length > 0) {
@@ -497,6 +826,7 @@ async function run(gen: number) {
         if (gen !== generation) return
         recordChoice(option, pendingOptions)
         if (pendingKind === 'stage' || pendingKind === 'call') await stageChoice(option, gen)
+        else if (pendingKind === 'app' || option.app) appChoice(option)
         else await sendChoice(option, room, gen)
         story.ChooseChoiceIndex(option.index)
         lastChosen = option.label
@@ -516,14 +846,16 @@ export const director = {
     if (story) return
     story = new Story(storyData)
     story.BindExternalFunction('saved', (name: string) => store.get().journal.photos.some((p) => p.name === name), true)
+    story.BindExternalFunction('read', (title: string) => store.get().journal.readPages.includes(title), true)
     const saved = loadResume()
     if (saved) {
       try {
         story.state.LoadJson(saved.snapshot.ink)
         currentRoom = saved.snapshot.room
         syncMessageIds(saved.messages)
+        const journal = { ...EMPTY_JOURNAL, ...saved.snapshot.journal }
         store.set({
-          journal: { ...EMPTY_JOURNAL, ...saved.snapshot.journal },
+          journal,
           messages: saved.messages,
           clock: saved.snapshot.clock,
           unread: saved.snapshot.unread,
@@ -531,10 +863,13 @@ export const director = {
           calls: saved.snapshot.calls ?? [],
         })
         nextCallId = (saved.snapshot.calls ?? []).reduce((max, c) => Math.max(max, c.id), 0) + 1
+        nextVoicemailId = journal.voicemails.reduce((max, v) => Math.max(max, v.id), 0) + 1
       } catch (error) {
         // 대본이 크게 바뀌어 저장본이 맞지 않으면 처음부터
         console.warn('저장본을 불러오지 못해 처음부터 시작합니다', error)
         story = new Story(storyData)
+        story.BindExternalFunction('saved', (name: string) => store.get().journal.photos.some((p) => p.name === name), true)
+        story.BindExternalFunction('read', (title: string) => store.get().journal.readPages.includes(title), true)
         store.reset()
       }
     }
@@ -574,7 +909,15 @@ export const director = {
     resolve?.()
   },
 
-  /** 추천 답장을 눌렀을 때 */
+  /** 엔딩 카드를 닫았을 때 */
+  closeFinale() {
+    store.set({ finale: null })
+    const resolve = finaleResolve
+    finaleResolve = null
+    resolve?.()
+  },
+
+  /** 추천 답장·앱 안의 선택지를 눌렀을 때 */
   choose(index: number) {
     const choice = store.get().choice
     const option = choice?.options.find((o) => o.index === index)
@@ -587,6 +930,14 @@ export const director = {
     resolve(option)
   },
 
+  /**
+   * 플레이어가 대본 밖에서 기록을 바꿨을 때(사진 저장, 수첩 읽기) 이어하기 저장에 바로 반영한다.
+   * 선택지를 기다리는 중에만 저장한다 (한 줄을 보여 주는 도중에 저장하면 그 줄이 사라진다)
+   */
+  persist() {
+    if (story && pendingResolve) saveResume(snapshot(), store.get().messages)
+  },
+
   /** 진행 중인 대본을 멈추고 상태를 비운다 */
   reset() {
     generation++
@@ -597,6 +948,8 @@ export const director = {
     pendingResolve = null
     advanceResolve = null
     summaryResolve = null
+    finaleResolve = null
+    lastVoicemail = null
     cleanupChoice?.()
     cleanupChoice = null
     store.reset()

@@ -53,9 +53,16 @@
 
   --app-messenger: #34c759;
   --app-call: #30b0c7;
-  --app-photos: #ff9f0a;
+  --app-photos: #ffffff;
+  --app-photos-fg: #ff9f0a;
   --app-calendar: #ff453a;
+  --app-calendar-tile: #ffffff;
   --app-notes: #ffcc00;
+  --app-tube: #16171a;
+  --app-tube-fg: #ff3b30;
+  --app-map: #0a84ff;
+  --app-snap: linear-gradient(45deg, #f7b733 0%, #fc4a1a 38%, #d6246e 68%, #8e2ecf 100%);
+  --app-town: #ff7a1a;
   --app-settings: #8e8e93;
 
   --person-seoha: #b7835a;
@@ -65,6 +72,8 @@
   --person-halmeoni: #c77d8e;
   --person-choi: #c0603f;
   --person-guard: #6f8a5b;
+  --person-dubu: #e0a44a;
+  --person-banjang: #3b6fb0;
   --avatar-text: #ffffff;
 
   /* 메신저 */
@@ -106,6 +115,45 @@
   --flow-locked: rgba(255, 255, 255, 0.35);
   --stage-placeholder: linear-gradient(160deg, #2a2f3a, #111318);
   --app-icon-fg: #ffffff;
+
+  /* 앱 안의 선택 (알림 알약 · 강조) */
+  --pill-bg: rgba(12, 14, 18, 0.9);
+  --pill-text: #ffffff;
+  --choice-glow: rgba(242, 104, 92, 0.35);
+
+  /* 튜브 */
+  --tube-bg: #0f0f10;
+  --tube-surface: #1d1e21;
+  --tube-text: #f1f1f1;
+  --tube-muted: #a0a3a8;
+  --tube-accent: #ff3b30;
+
+  /* 지도 */
+  --map-land: #eef0e6;
+  --map-block: #e2e5d8;
+  --map-road: #ffffff;
+  --map-road-major: #ffd98a;
+  --map-road-edge: #d6d8cc;
+  --map-water: #a9d3f0;
+  --map-park: #c5e3b0;
+  --map-market: #f3c9a0;
+  --map-label: #4a4f57;
+  --map-pin: #ff453a;
+  --map-pin-known: #5e6570;
+  --map-me: #0a84ff;
+
+  /* 스냅 */
+  --snap-heart: #ff3040;
+  --snap-ring: linear-gradient(45deg, #f7b733, #fc4a1a, #d6246e, #8e2ecf);
+
+  /* 망원살이 */
+  --town-accent: #ff7a1a;
+  --town-chip: #fff1e6;
+  --town-chip-text: #c2570c;
+
+  /* 엔딩 카드 */
+  --finale-bg: #07080b;
+  --finale-line: rgba(255, 255, 255, 0.25);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -144,5 +192,22 @@
     --photo-placeholder: linear-gradient(135deg, #2c323b, #20252c);
     --banner-bg: rgba(40, 44, 52, 0.88);
     --banner-shadow: rgba(0, 0, 0, 0.5);
+
+    --app-photos: #f2f2f7;
+    --app-calendar-tile: #f2f2f7;
+
+    --map-land: #1e2226;
+    --map-block: #262b30;
+    --map-road: #3a4047;
+    --map-road-major: #6b5a35;
+    --map-road-edge: #2c3136;
+    --map-water: #1f3b52;
+    --map-park: #243a2a;
+    --map-market: #4a3526;
+    --map-label: #c4c9d0;
+    --map-pin-known: #9aa0a9;
+
+    --town-chip: #3a2a1e;
+    --town-chip-text: #ffb57d;
   }
 }

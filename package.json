@@ -8,7 +8,8 @@
     "build": "node scripts/convert-images.mjs && tsc -b && vite build",
     "preview": "vite preview",
     "icons": "node scripts/gen-icons.mjs",
-    "images": "node scripts/convert-images.mjs"
+    "images": "node scripts/convert-images.mjs",
+    "playtest": "node scripts/playtest.ts"
   },
   "dependencies": {
     "inkjs": "^2.4.0",
