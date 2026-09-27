@@ -374,6 +374,10 @@ function handlePlanTags(text: string, tags: Tags) {
       }))
     } else warn(`알 수 없는 장소: ${place}`)
   }
+  if (tags.unpost !== undefined) {
+    const gone = tags.unpost
+    updateJournal((j) => ({ posts: j.posts.map((p) => (p.id === gone ? { ...p, deleted: true } : p)) }))
+  }
   if (tags.missed !== undefined) {
     if (isPersonId(tags.missed)) {
       const record: CallRecord = {
@@ -530,6 +534,11 @@ async function stageLine(text: string, tags: Tags, gen: number) {
   if (tags.narr !== undefined) {
     speaker = null
     label = undefined
+  }
+  // 한 번 나오는 사람 (건물주 사모님, 손님 …): 이름표만 붙인다
+  if (tags.as) {
+    speaker = null
+    label = tags.as
   }
   setStage({ line: { id: nextLineId++, speaker, text, ...(label ? { label } : {}) } })
   // 바로 뒤에 선택지가 오면 탭을 기다리지 않고 선택지를 함께 보여준다

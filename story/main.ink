@@ -9,6 +9,11 @@ INCLUDE d02.ink
 INCLUDE d03.ink
 INCLUDE d04.ink
 INCLUDE d05.ink
-INCLUDE route_stub.ink
+INCLUDE boss.ink
+INCLUDE route_seoha.ink
+INCLUDE route_ian.ink
+INCLUDE route_daon.ink
+INCLUDE route_alone.ink
+INCLUDE endings.ink
 
 -> d01_morning

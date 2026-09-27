@@ -27,6 +27,7 @@ VAR k_lantern = false     // 물병 랜턴
 VAR k_incubator = false   // 보온기 온도조절기
 VAR k_bolt = false        // 녹슨 볼트
 VAR k_jeju = false        // 제주 만물수선 (김 사장님의 영상)
+VAR k_timing = false      // 연애 상담 영상 (수리 아님. 실력은 안 오른다)
 VAR roaster_step = 0      // 서하 루트: 로스터 수리 진척 (0~3)
 VAR f_book_read = false   // 밤에 사장님 수첩을 통째로 읽었다 (read()와 같은 효과)
 

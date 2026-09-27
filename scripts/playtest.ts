@@ -59,7 +59,7 @@ function compile(): string {
 
 const LINE_TAGS = new Set([
   'day', 'time', 'room', 'from', 'typing', 'photo', 'big', 'wait', 'scene', 'cut', 'fx', 'fade', 'call', 'video',
-  'outgoing', 'unknown', 'noanswer', 'play', 'narr', 'gallery', 'plan', 'unplan', 'event', 'note', 'page', 'todo', 'done',
+  'outgoing', 'unknown', 'noanswer', 'play', 'narr', 'as', 'gallery', 'plan', 'unplan', 'event', 'note', 'page', 'todo', 'done',
   'dayend', 'ask', 'at', 'pin', 'unpin', 'memo', 'voicemail', 'missed', 'post', 'comment', 'unpost', 'town',
   'townreply', 'ending',
 ])
@@ -389,14 +389,16 @@ function play(policy: Policy, options: { check: boolean; savePhotos: number; rea
 
 const randomPolicy: Policy = (story) => Math.floor(Math.random() * story.currentChoices.length)
 
-/** 그 히로인 호감이 가장 많이 오르는 선택 (앞을 몇 걸음 무작위로 굴려 본다) */
-function focusPolicy(heroine: 'seoha' | 'ian' | 'daon'): Policy {
-  const affVar = `aff_${heroine}`
+/** 그 히로인 호감이 가장 많이 오르는 선택 (앞을 몇 걸음 무작위로 굴려 본다). 'all'이면 세 사람 호감의 합 */
+function focusPolicy(heroine: 'seoha' | 'ian' | 'daon' | 'all'): Policy {
+  const heroines = heroine === 'all' ? ['seoha', 'ian', 'daon'] : [heroine]
   const score = (story: Story) => {
-    let value = Number(story.variablesState.$(affVar) ?? 0)
+    let value = 0
+    for (const h of heroines) value += Number(story.variablesState.$(`aff_${h}`) ?? 0)
     // 루트·엔딩 플래그도 조금 친다
     for (const name of story.variablesState['_globalVariables']?.keys?.() ?? []) {
-      if (typeof name === 'string' && name.startsWith(`f_${heroine}`) && story.variablesState.$(name) === true) value += 3
+      if (typeof name !== 'string' || story.variablesState.$(name) !== true) continue
+      if (heroines.some((h) => name.startsWith(`f_${h}`))) value += 3
     }
     return value
   }
@@ -471,7 +473,7 @@ function summarize(name: string, results: RunResult[]) {
 }
 
 if (TRACE) {
-  const policy = TRACE === 'random' ? randomPolicy : focusPolicy(TRACE as 'seoha' | 'ian' | 'daon')
+  const policy = TRACE === 'random' ? randomPolicy : focusPolicy(TRACE as 'seoha' | 'ian' | 'daon' | 'all')
   const r = play(policy, { check: true, savePhotos: 1, readPages: 1, trace: true })
   console.log(r.trace.join('\n'))
   console.log(`\n엔딩: ${r.ending} · 루트: ${r.route} · ${JSON.stringify(r.vars)}`)
@@ -481,6 +483,11 @@ if (TRACE) {
 const t0 = Date.now()
 const random = Array.from({ length: RUNS }, () => play(randomPolicy, { check: true, savePhotos: 0.5, readPages: 0.03 }))
 summarize('무작위 플레이', random)
+{
+  const runs = Math.max(20, Math.floor(RUNS / 5))
+  const nice = Array.from({ length: runs }, () => play(focusPolicy('all'), { check: false, savePhotos: 0.7, readPages: 0.2 }))
+  summarize('모두에게 친절한 플레이', nice)
+}
 for (const heroine of ['seoha', 'ian', 'daon'] as const) {
   const runs = Math.max(20, Math.floor(RUNS / 5))
   const focused = Array.from({ length: runs }, () => play(focusPolicy(heroine), { check: false, savePhotos: 1, readPages: 1 }))

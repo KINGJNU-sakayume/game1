@@ -2,8 +2,8 @@
 // 이 파일은 import 없이 둔다 (scripts/playtest.ts가 그대로 읽는다).
 
 export type HeroineId = 'seoha' | 'ian' | 'daon'
-export type PersonId = HeroineId | 'boss' | 'halmeoni' | 'choi' | 'guard' | 'dubu' | 'banjang'
-export type RoomId = 'seoha' | 'ian' | 'daon' | 'boss' | 'dangol'
+export type PersonId = HeroineId | 'boss' | 'halmeoni' | 'choi' | 'guard' | 'dubu' | 'banjang' | 'stranger'
+export type RoomId = 'seoha' | 'ian' | 'daon' | 'boss' | 'dangol' | 'stranger'
 /** 메시지 보낸 사람: 등장인물, 주인공(me), 시스템 안내(system) */
 export type SenderId = PersonId | 'me' | 'system'
 
@@ -34,6 +34,7 @@ export const PEOPLE: Record<PersonId, Person> = {
   guard: { name: '경비 아저씨', color: 'var(--person-guard)', number: '02-335-0201', role: '해든빌라 관리실' },
   dubu: { name: '두부', color: 'var(--person-dubu)', role: '동물의료센터에 사는 치즈 고양이' },
   banjang: { name: '오반장', color: 'var(--person-banjang)', role: '튜브 「오반장 수리교실」' },
+  stranger: { name: '모르는 번호', color: 'var(--person-stranger)', number: '010-8812-4052', role: '새 번호로 온 첫 메시지' },
 }
 
 export interface Room {
@@ -48,6 +49,7 @@ export const ROOMS: Record<RoomId, Room> = {
   ian: { name: '채이안', members: ['ian'], group: false },
   daon: { name: '김다온', members: ['daon'], group: false },
   boss: { name: '김용수 사장님', members: ['boss'], group: false },
+  stranger: { name: '010-8812-4052', members: ['stranger'], group: false },
   dangol: {
     name: '만물수선 단골방',
     members: ['seoha', 'ian', 'daon', 'halmeoni', 'choi', 'guard'],
