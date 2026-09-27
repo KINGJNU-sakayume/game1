@@ -182,7 +182,7 @@ VAR f_alone_gave = false      // 번호를 다온(사장님 가족)에게 넘기
 봄 메뉴가 나왔어요 🍓 오후세시에서 기다릴게요 :)
 # post: ian_p6a # from: ian # photo: ian_cg_box_01
 외주 마감 완료. 잠시 쉬러 갑니다
-# post: dubu_p5a # from: dubu # photo: dubu_cg_kittens_02
+# post: dubu_p5a # from: dubu # photo: dubu_cg_alone_01
 아기들 전부 새 가족 찾았어요 🐾 두부는 다시 외동
 # note: 3월 20일
 세 사람의 봄은 각자 흘러가고 있다. 나는 그 봄을 스냅으로 본다.
