@@ -196,7 +196,7 @@
 {f_ian_submit: 공모 결과는 전주에서 기다리려고요. 오늘 내려가요.|오늘 전주 내려가요. 인사하려고요.}
 * [지금 올라갈게요]
 - # time: 12:00
-# scene: bg_ian_room_day_01 # at: home, 301호 이사
+# scene: ian_cg_box_01 # at: home, 301호 이사
 301호. 벽에 붙어 있던 그림들이 전부 떼어져 박스에 들어가 있다. 벽이 하얗다.
 # cut: ian_face_smile_01 # from: ian
 형광등 멀쩡하죠? ㅋㅋ 알아요. 그냥 불렀어요.
